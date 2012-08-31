@@ -1,6 +1,5 @@
 #include <memory>
 #include <utility>
-#include <iostream>
 #include <gmpxx.h>
 
 namespace cmpxx{
@@ -18,28 +17,28 @@ namespace cmpxx{
             typedef MPClass mp_type;
 
             mp_wrapper() :
-                value_pointer_(new MPClass)
+                value_()
             {}
 
             mp_wrapper(const mp_wrapper &other) :
-                value_pointer_(new MPClass(*other.value_pointer_.get()))
+                value_(other.get_raw_value())
             {}
 
             mp_wrapper(mp_wrapper &&other) :
-                value_pointer_(nullptr)
-            { value_pointer_.swap(other.value_pointer_); }
+                value_()
+            { swap_mp(other.value_); }
 
-            mp_wrapper(MPClass &&value) :
-                value_pointer_(new MPClass)
-            { swap_mp_class(value); }
+            mp_wrapper(mp_type &&value) :
+                value_()
+            { swap_mp(value); }
 
             template<class T>
             mp_wrapper(const expr_wrapper<T> &wrapped_expr) :
-                value_pointer_(new MPClass(wrapped_expr.expr))
+                value_(wrapped_expr.expr)
             {}
 
             mp_wrapper(const std::string &s, int base = 0) :
-                value_pointer_(new MPClass(s, base))
+                value_(s, base)
             {}
 
             mp_wrapper &operator =(const mp_wrapper &other){
@@ -48,19 +47,18 @@ namespace cmpxx{
             }
 
             mp_wrapper &operator =(mp_wrapper &&other){
-                value_pointer_.swap(other.value_pointer_);
-                other.value_pointer_.reset(nullptr);
+                swap_mp(other.get_raw_value());
                 return *this;
             }
 
             template<class T>
             mp_wrapper &operator =(const expr_wrapper<T> &wrapped_expr){
-                *value_pointer_.get() = wrapped_expr.expr;
+                get_raw_value() = wrapped_expr.expr;
                 return *this;
             }
 
-            mp_wrapper &operator =(MPClass &&raw_value){
-                swap_mp_class(raw_value);
+            mp_wrapper &operator =(mp_type &&raw_value){
+                swap_mp(raw_value);
                 return *this;
             }
 
@@ -71,11 +69,11 @@ namespace cmpxx{
                 }                                                    \
                 template<class T>                                    \
                 mp_wrapper &op(const expr_wrapper<T> &wrapped_expr){ \
-                    *value_pointer_.get().op(wrapped_expr.expr);     \
+                    get_raw_value().op(wrapped_expr.expr);           \
                     return *this;                                    \
                 }                                                    \
                 mp_wrapper &op(MPClass &&raw_value){                 \
-                    *value_pointer_.get().op(raw_value);             \
+                    get_raw_value().op(raw_value);                   \
                     return *this;                                    \
                 }
 
@@ -108,27 +106,27 @@ namespace cmpxx{
             CMPXX_DEFINE_ID_OPERATOR(operator ++);
             CMPXX_DEFINE_ID_OPERATOR(operator --);
 
-            const MPClass &get_raw_value() const{
-                return *value_pointer_.get();
+            const mp_type &get_raw_value() const{
+                return value_;
             }
 
-            MPClass &get_raw_value(){
-                return *value_pointer_.get();
+            mp_type &get_raw_value(){
+                return value_;
             }
 
         private:
-            void swap_mp_class(MPClass &value){
+            void swap_mp(mp_type &value){
                 typedef typename std::aligned_storage<
-                    sizeof(MPClass),
-                    std::alignment_of<MPClass>::value
+                    sizeof(mp_type),
+                    std::alignment_of<mp_type>::value
                 >::type pod_of_mp_class;
                 std::swap(
-                    *static_cast<pod_of_mp_class*>(static_cast<void*>(value_pointer_.get())),
+                    *static_cast<pod_of_mp_class*>(static_cast<void*>(&value_)),
                     *static_cast<pod_of_mp_class*>(static_cast<void*>(&value))
                 );
             }
 
-            std::unique_ptr<MPClass> value_pointer_;
+            mp_type value_;
         };
     }
 }
@@ -293,19 +291,36 @@ namespace cmpxx{
     typedef aux::mp_wrapper<mpq_class> rational;
 }
 
-#include <typeinfo>
+// test
+
+#include <iostream>
+#include <boost/timer.hpp>
+
+cmpxx::integer value_a("99999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999");
+mpz_class value_b("99999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999");
+
+cmpxx::integer return_a(){
+    return value_a;
+}
+
+mpz_class return_b(){
+    return value_b;
+}
 
 int main(){
-    cmpxx::integer a;
-    a = 11;
-    a = ~~sqrt((((a * a + a * a) + 2) << 1) >> 1);
-    a += a;
-    a <<= 11;
-    a++;
-    ++a;
-    a--;
-    --a;
-    std::cout << a.get_raw_value().get_str() << "\n";
+    boost::timer t;
+
+    t.restart();
+    for(int i = 0; i < (1 << 20); ++i){
+        cmpxx::integer x = return_a();
+    }
+    std::cout << t.elapsed() << "\n";
+
+    t.restart();
+    for(int i = 0; i < (1 << 20); ++i){
+        mpz_class x = return_b();
+    }
+    std::cout << t.elapsed() << "\n";
 
     return 0;
 }
