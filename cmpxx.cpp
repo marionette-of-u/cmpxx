@@ -16,82 +16,94 @@ namespace cmpxx{
         public:
             typedef MPClass mp_type;
 
-            mp_wrapper() :
+            inline mp_wrapper() :
                 value_()
             {}
 
-            mp_wrapper(const mp_wrapper &other) :
+            inline mp_wrapper(const mp_wrapper &other) :
                 value_(other.get_raw_value())
             {}
 
-            mp_wrapper(mp_wrapper &&other) :
+            inline mp_wrapper(mp_wrapper &&other) :
                 value_()
-            { swap_mp(other.value_); }
+            { swap_mp(other.get_raw_value()); }
 
-            mp_wrapper(mp_type &&value) :
+            inline mp_wrapper(mp_type &&value) :
                 value_()
             { swap_mp(value); }
 
             template<class T>
-            mp_wrapper(const expr_wrapper<T> &wrapped_expr) :
+            inline mp_wrapper(const expr_wrapper<T> &wrapped_expr) :
                 value_(wrapped_expr.expr)
             {}
 
-            mp_wrapper(const std::string &s, int base = 0) :
+            inline explicit mp_wrapper(const char *s) :
+                value_(s)
+            {}
+
+            inline mp_wrapper(const char *s, int base) :
                 value_(s, base)
             {}
 
-            mp_wrapper &operator =(const mp_wrapper &other){
+            inline explicit mp_wrapper(const std::string &s) :
+                value_(s)
+            {}
+                
+            inline mp_wrapper(const std::string &s, int base) :
+                value_(s, base)
+            {}
+
+            inline mp_wrapper &operator =(const mp_wrapper &other){
                 get_raw_value() = other.get_raw_value();
                 return *this;
             }
 
-            mp_wrapper &operator =(mp_wrapper &&other){
+            inline mp_wrapper &operator =(mp_wrapper &&other){
                 swap_mp(other.get_raw_value());
                 return *this;
             }
 
             template<class T>
-            mp_wrapper &operator =(const expr_wrapper<T> &wrapped_expr){
+            inline mp_wrapper &operator =(const expr_wrapper<T> &wrapped_expr){
                 get_raw_value() = wrapped_expr.expr;
                 return *this;
             }
 
-            mp_wrapper &operator =(mp_type &&raw_value){
+            inline mp_wrapper &operator =(mp_type &&raw_value){
                 swap_mp(raw_value);
                 return *this;
             }
 
-            #define CMPXX_DEFINE_COMPOUND_OPERATOR(op)               \
-                mp_wrapper &op(const mp_wrapper &other){             \
-                    get_raw_value().op(other.get_raw_value());       \
-                    return *this;                                    \
-                }                                                    \
-                template<class T>                                    \
-                mp_wrapper &op(const expr_wrapper<T> &wrapped_expr){ \
-                    get_raw_value().op(wrapped_expr.expr);           \
-                    return *this;                                    \
-                }                                                    \
-                mp_wrapper &op(MPClass &&raw_value){                 \
-                    get_raw_value().op(raw_value);                   \
-                    return *this;                                    \
+            #define CMPXX_DEFINE_COMPOUND_OPERATOR(op)                      \
+                inline mp_wrapper &op(const mp_wrapper &other){             \
+                    get_raw_value().op(other.get_raw_value());              \
+                    return *this;                                           \
+                }                                                           \
+                template<class T>                                           \
+                inline mp_wrapper &op(const expr_wrapper<T> &wrapped_expr){ \
+                    get_raw_value().op(wrapped_expr.expr);                  \
+                    return *this;                                           \
+                }                                                           \
+                inline mp_wrapper &op(MPClass &&raw_value){                 \
+                    get_raw_value().op(raw_value);                          \
+                    return *this;                                           \
                 }
 
-            #define CMPXX_DEFINE_COMPOUND_OPERATOR_UI(op) \
-                mp_wrapper &op(unsigned long int v){      \
-                    get_raw_value().op(v);                \
-                    return *this;                         \
+            #define CMPXX_DEFINE_COMPOUND_OPERATOR_UI(op)        \
+                inline mp_wrapper &op(unsigned long int v){      \
+                    get_raw_value().op(v);                       \
+                    return *this;                                \
                 }
 
-            #define CMPXX_DEFINE_ID_OPERATOR(op) \
-                mp_wrapper &op(){                \
-                    get_raw_value().op();        \
-                    return *this;                \
-                }                                \
-                mp_wrapper &op(int){             \
-                    get_raw_value().op(int());   \
-                    return *this;                \
-                }                                \
+            #define CMPXX_DEFINE_ID_OPERATOR(op)        \
+                inline mp_wrapper &op(){                \
+                    get_raw_value().op();               \
+                    return *this;                       \
+                }                                       \
+                inline mp_wrapper &op(int){             \
+                    get_raw_value().op(int());          \
+                    return *this;                       \
+                }                                       \
 
             CMPXX_DEFINE_COMPOUND_OPERATOR(operator +=);
             CMPXX_DEFINE_COMPOUND_OPERATOR(operator -=);
@@ -106,23 +118,23 @@ namespace cmpxx{
             CMPXX_DEFINE_ID_OPERATOR(operator ++);
             CMPXX_DEFINE_ID_OPERATOR(operator --);
 
-            const mp_type &get_raw_value() const{
+            inline const mp_type &get_raw_value() const{
                 return value_;
             }
 
-            mp_type &get_raw_value(){
+            inline mp_type &get_raw_value(){
                 return value_;
             }
 
         private:
-            void swap_mp(mp_type &value){
+            inline void swap_mp(mp_type &value){
                 typedef typename std::aligned_storage<
                     sizeof(mp_type),
                     std::alignment_of<mp_type>::value
-                >::type pod_of_mp_class;
+                >::type pod_of_mp_type;
                 std::swap(
-                    *static_cast<pod_of_mp_class*>(static_cast<void*>(&value_)),
-                    *static_cast<pod_of_mp_class*>(static_cast<void*>(&value))
+                    *static_cast<pod_of_mp_type*>(static_cast<void*>(&value)),
+                    *static_cast<pod_of_mp_type*>(static_cast<void*>(&value_))
                 );
             }
 
@@ -296,14 +308,13 @@ namespace cmpxx{
 #include <iostream>
 #include <boost/timer.hpp>
 
-cmpxx::integer value_a("99999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999");
-mpz_class value_b("99999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999");
-
 cmpxx::integer return_a(){
+    cmpxx::integer value_a("99999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999");
     return value_a;
 }
 
 mpz_class return_b(){
+    mpz_class value_b("99999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999");
     return value_b;
 }
 
@@ -311,14 +322,16 @@ int main(){
     boost::timer t;
 
     t.restart();
-    for(int i = 0; i < (1 << 20); ++i){
-        cmpxx::integer x = return_a();
+    for(int i = 0; i < (1 << 22); ++i){
+        cmpxx::integer x;
+        x = return_a();
     }
     std::cout << t.elapsed() << "\n";
 
     t.restart();
-    for(int i = 0; i < (1 << 20); ++i){
-        mpz_class x = return_b();
+    for(int i = 0; i < (1 << 22); ++i){
+        mpz_class x;
+        x = return_b();
     }
     std::cout << t.elapsed() << "\n";
 
