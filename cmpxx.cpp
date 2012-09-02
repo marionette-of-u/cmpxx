@@ -1,5 +1,8 @@
 #include <memory>
 #include <utility>
+#include <limits>
+#include <cmath>
+#include <cstdlib>
 #include <gmpxx.h>
 
 namespace cmpxx{
@@ -74,20 +77,58 @@ namespace cmpxx{
                 return *this;
             }
 
-            #define CMPXX_DEFINE_COMPOUND_OPERATOR(op)                      \
-                inline mp_wrapper &op(const mp_wrapper &other){             \
-                    get_raw_value().op(other.get_raw_value());              \
-                    return *this;                                           \
-                }                                                           \
-                template<class T>                                           \
-                inline mp_wrapper &op(const expr_wrapper<T> &wrapped_expr){ \
-                    get_raw_value().op(wrapped_expr.expr);                  \
-                    return *this;                                           \
-                }                                                           \
-                inline mp_wrapper &op(MPClass &&raw_value){                 \
-                    get_raw_value().op(raw_value);                          \
-                    return *this;                                           \
+            #define CMPXX_DEFINE_ASSIGN_OPERATOR(type)     \
+                inline mp_wrapper &operator =(type value){ \
+                    get_raw_value() = value;               \
+                    return *this;                          \
                 }
+
+            CMPXX_DEFINE_ASSIGN_OPERATOR(signed char);
+            CMPXX_DEFINE_ASSIGN_OPERATOR(unsigned char);
+            CMPXX_DEFINE_ASSIGN_OPERATOR(signed int);
+            CMPXX_DEFINE_ASSIGN_OPERATOR(unsigned int);
+            CMPXX_DEFINE_ASSIGN_OPERATOR(signed short int);
+            CMPXX_DEFINE_ASSIGN_OPERATOR(unsigned short int);
+            CMPXX_DEFINE_ASSIGN_OPERATOR(signed long int);
+            CMPXX_DEFINE_ASSIGN_OPERATOR(unsigned long int);
+            CMPXX_DEFINE_ASSIGN_OPERATOR(float);
+            CMPXX_DEFINE_ASSIGN_OPERATOR(double);
+            CMPXX_DEFINE_ASSIGN_OPERATOR(long double);
+
+            #define CMPXX_DEFINE_COMPOUND_OPERATOR_IMPL(op, type) \
+                inline mp_wrapper &op(type value){                \
+                    get_raw_value().op(value);                    \
+                    return *this;                                 \
+                }
+
+            #define CMPXX_DEFINE_COMPOUND_OPERATOR(op)                       \
+                inline mp_wrapper &op(const mp_wrapper &other){              \
+                    get_raw_value().op(other.get_raw_value());               \
+                    return *this;                                            \
+                }                                                            \
+                inline mp_wrapper &op(mp_wrapper &&other){                   \
+                    get_raw_value().op(other.get_raw_value());               \
+                }                                                            \
+                template<class T>                                            \
+                inline mp_wrapper &op(const expr_wrapper<T> &wrapped_expr){  \
+                    get_raw_value().op(wrapped_expr.expr);                   \
+                    return *this;                                            \
+                }                                                            \
+                inline mp_wrapper &op(mp_type &&raw_value){                  \
+                    get_raw_value().op(raw_value);                           \
+                    return *this;                                            \
+                }                                                            \
+                CMPXX_DEFINE_COMPOUND_OPERATOR_IMPL(op, signed char);        \
+                CMPXX_DEFINE_COMPOUND_OPERATOR_IMPL(op, unsigned char);      \
+                CMPXX_DEFINE_COMPOUND_OPERATOR_IMPL(op, signed int);         \
+                CMPXX_DEFINE_COMPOUND_OPERATOR_IMPL(op, unsigned int);       \
+                CMPXX_DEFINE_COMPOUND_OPERATOR_IMPL(op, signed short int);   \
+                CMPXX_DEFINE_COMPOUND_OPERATOR_IMPL(op, unsigned short int); \
+                CMPXX_DEFINE_COMPOUND_OPERATOR_IMPL(op, signed long int);    \
+                CMPXX_DEFINE_COMPOUND_OPERATOR_IMPL(op, unsigned long int);  \
+                CMPXX_DEFINE_COMPOUND_OPERATOR_IMPL(op, float);              \
+                CMPXX_DEFINE_COMPOUND_OPERATOR_IMPL(op, double);             \
+                CMPXX_DEFINE_COMPOUND_OPERATOR_IMPL(op, long double);
 
             #define CMPXX_DEFINE_COMPOUND_OPERATOR_UI(op)        \
                 inline mp_wrapper &op(unsigned long int v){      \
@@ -103,7 +144,7 @@ namespace cmpxx{
                 inline mp_wrapper &op(int){             \
                     get_raw_value().op(int());          \
                     return *this;                       \
-                }                                       \
+                }
 
             CMPXX_DEFINE_COMPOUND_OPERATOR(operator +=);
             CMPXX_DEFINE_COMPOUND_OPERATOR(operator -=);
@@ -301,39 +342,178 @@ CMPXX_DEFINE_UNARY_OVERLOAD(sqrt, __gmp_sqrt_function)
 namespace cmpxx{
     typedef aux::mp_wrapper<mpz_class> integer;
     typedef aux::mp_wrapper<mpq_class> rational;
+    
+    namespace aux{
+        template<class Type>
+        class fpoint{
+        public:
+            typedef Type type;
+
+            inline fpoint() : exp_(), frac_(){}
+
+            inline fpoint(const fpoint &other) : exp_(other.exp_), frac_(other.frac_){}
+
+            inline fpoint(fpoint &&other) :
+                exp_(), frac_()
+            {
+                typedef std::aligned_storage<
+                    sizeof(integer),
+                    std::alignment_of<integer>::value
+                >::type pod_of_integer;
+                std::swap(
+                    *static_cast<pod_of_integer*>(static_cast<void*>(&exp_)),
+                    *static_cast<pod_of_integer*>(static_cast<void*>(&other.exp_))
+                );
+                std::swap(
+                    *static_cast<pod_of_integer*>(static_cast<void*>(&frac_)),
+                    *static_cast<pod_of_integer*>(static_cast<void*>(&other.frac_))
+                );
+            }
+
+            fpoint(double x) : exp_(), frac_(){
+                static const std::size_t
+                    digits = static_cast<std::size_t>(std::numeric_limits<mp_limb_t>::digits),
+                    mask = digits - 1,
+                    shift = rightmost_zero_seq_num(digits);
+                bool sign = x >= 0.0;
+                if(x < 0.0){ x = -x; }
+                std::size_t prec = get_prec();
+                mpz_ptr z = frac_.get_raw_value().get_mpz_t();
+                mp_limb_t *data = z->_mp_d;
+                double x_frac;
+                int x_exp;
+                x_frac = std::frexp(x, &x_exp);
+                if(x_exp >= 0){
+                    exp_ = x_exp / digits;
+                    if(x_exp % digits != 0){ ++exp_; }
+                }else{
+                    x_exp *= -1;
+                    exp_ = x_exp / digits;
+                    if(x_exp % digits != 0){ ++exp_; }
+                    exp_.get_raw_value().get_mpz_t()->_mp_size *= -1;
+                }
+                std::size_t exp = exp_.get_raw_value().get_ui();
+                std::size_t bit_counter = 0;
+                double frac_bit = 0.5;
+                std::size_t shift_offset = 1;
+                if(exp_ > 0){
+                    for(
+                        ;
+                        (bit_counter >> shift) < prec &&
+                            bit_counter < static_cast<std::size_t>(x_exp) &&
+                            x_frac > 0 &&
+                            frac_bit > 0;
+                        ++bit_counter
+                    ){
+                        frac_ <<= 1;
+                        if(x_frac >= frac_bit){
+                            frac_ += 1;
+                            x_frac -= frac_bit;
+                        }
+                        frac_bit /= 2.0;
+                    }
+                    bit_counter = 0;
+                    shift_offset = 2;
+                    data = frac_.get_raw_value().get_mpz_t()->_mp_d;
+                }
+                if(exp < prec){
+                    integer f;
+                    for(
+                        ;
+                        (bit_counter >> shift) < prec && x_frac > 0 && frac_bit > 0;
+                        ++bit_counter
+                    ){
+                        f <<= 1;
+                        if(x_frac >= frac_bit){
+                            f += 1;
+                            x_frac -= frac_bit;
+                        }
+                        frac_bit /= 2.0;
+                    }
+                    frac_ <<= (prec - exp) * digits;
+                    frac_ |= f;
+                }
+                if(!sign){ z->_mp_size *= -1; }
+            }
+
+            integer integer_portion() const{
+                if(exp_ <= 0){ return integer(0); }
+                const std::size_t
+                    digits = std::numeric_limits<mp_limb_t>::digits,
+                    prec = mpz_size(frac_.get_raw_value().get_mpz_t()),
+                    exp = exp_.get_raw_value().get_ui();
+                if(exp < prec){
+                    return frac_ >> ((prec - exp) * digits);
+                }else{
+                    return frac_ << ((exp - prec) * digits);
+                }
+            }
+
+            fpoint frac_portion() const{
+                if(exp_ <= 0){ return *this; }
+                fpoint x;
+                mpz_srcptr z = frac_.get_raw_value().get_mpz_t();
+                mpz_ptr w = x.frac_.get_raw_value().get_mpz_t();
+                const std::size_t
+                    digits = std::numeric_limits<mp_limb_t>::digits,
+                    prec = mpz_size(z),
+                    e = exp_.get_raw_value().get_ui();
+                std::size_t n = prec - e;
+                while(z->_mp_d[n - 1] == 0){ --n; }
+                mpz_realloc2(w, n * digits);
+                w->_mp_size = w->_mp_alloc;
+                mpn_copyi(w->_mp_d, z->_mp_d, n);
+                return x;
+            }
+
+            inline static void set_prec(std::size_t value){
+                if(value < 2){ value = 2; }
+                prec_impl() = value;
+            }
+
+            inline static std::size_t get_prec(){
+                return prec_impl();
+            }
+
+            inline const integer &exp() const{
+                return exp_;
+            }
+
+            inline const integer &frac() const{
+                return frac_;
+            }
+
+        private:
+            inline static std::size_t rightmost_zero_seq_num(std::size_t i){
+                std::size_t n = 0;
+                while((i & 1) == 0){
+                    ++n;
+                    i >>= 1;
+                }
+                return n;
+            }
+
+            inline static std::size_t &prec_impl(){
+                static std::size_t value = 2;
+                return value;
+            }
+
+            integer exp_, frac_;
+        };
+    }
+
+    typedef aux::fpoint<void> fpoint;
 }
 
 // test
-
 #include <iostream>
-#include <boost/timer.hpp>
-
-cmpxx::integer return_a(){
-    cmpxx::integer value_a("99999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999");
-    return value_a;
-}
-
-mpz_class return_b(){
-    mpz_class value_b("99999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999");
-    return value_b;
-}
 
 int main(){
-    boost::timer t;
-
-    t.restart();
-    for(int i = 0; i < (1 << 22); ++i){
-        cmpxx::integer x;
-        x = return_a();
-    }
-    std::cout << t.elapsed() << "\n";
-
-    t.restart();
-    for(int i = 0; i < (1 << 22); ++i){
-        mpz_class x;
-        x = return_b();
-    }
-    std::cout << t.elapsed() << "\n";
+    cmpxx::fpoint::set_prec(8);
+    cmpxx::fpoint f = 4294967296.0 + 1.0 / 2.0 + 1.0 / 8.0 + 1.0 / 16.0;
+    std::cout
+        << f.integer_portion().get_raw_value().get_str(16) << "\n"
+        << f.frac_portion().frac().get_raw_value().get_str(16) << "\n";
 
     return 0;
 }
