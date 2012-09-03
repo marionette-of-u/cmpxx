@@ -395,7 +395,6 @@ namespace cmpxx{
                 std::size_t exp = exp_.get_raw_value().get_ui();
                 std::size_t bit_counter = 0;
                 double frac_bit = 0.5;
-                std::size_t shift_offset = 1;
                 if(exp_ > 0){
                     for(
                         ;
@@ -413,25 +412,22 @@ namespace cmpxx{
                         frac_bit /= 2.0;
                     }
                     bit_counter = 0;
-                    shift_offset = 2;
-                    data = frac_.get_raw_value().get_mpz_t()->_mp_d;
                 }
                 if(exp < prec){
-                    integer f;
+                    std::size_t n = prec - exp;
+                    frac_ <<= n * digits;
+                    data = z->_mp_d;
                     for(
                         ;
                         (bit_counter >> shift) < prec && x_frac > 0 && frac_bit > 0;
                         ++bit_counter
                     ){
-                        f <<= 1;
                         if(x_frac >= frac_bit){
-                            f += 1;
+                            data[n - 1 - (bit_counter >> shift)] |= 1 << (digits - 1 - (bit_counter & mask));
                             x_frac -= frac_bit;
                         }
                         frac_bit /= 2.0;
                     }
-                    frac_ <<= (prec - exp) * digits;
-                    frac_ |= f;
                 }
                 if(!sign){ z->_mp_size *= -1; }
             }
@@ -459,10 +455,10 @@ namespace cmpxx{
                     prec = mpz_size(z),
                     e = exp_.get_raw_value().get_ui();
                 std::size_t n = prec - e;
-                while(z->_mp_d[n - 1] == 0){ --n; }
+                while(z->_mp_d[prec - e - n] == 0){ --n; }
                 mpz_realloc2(w, n * digits);
                 w->_mp_size = w->_mp_alloc;
-                mpn_copyi(w->_mp_d, z->_mp_d, n);
+                mpn_copyi(w->_mp_d, z->_mp_d + prec - e - n, n);
                 return x;
             }
 
