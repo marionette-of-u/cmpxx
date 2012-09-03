@@ -340,10 +340,29 @@ namespace cmpxx{
     typedef aux::mp_wrapper<mpq_class> rational;
     
     namespace aux{
+        template<std::size_t n>
+        struct calc_rightmost_zero_seq_num{
+            static const std::size_t value = 1 + calc_rightmost_zero_seq_num<(n >> 1)>::value;
+        };
+
+        template<>
+        struct calc_rightmost_zero_seq_num<0>{
+            static const std::size_t value = 0;
+        };
+
+        template<class Type>
+        struct mp_info{
+            static const std::size_t
+                digits = std::numeric_limits<Type>::digits,
+                mask = digits - 1,
+                rightmost_zero_seq_num = calc_rightmost_zero_seq_num<digits>::value;
+        };
+
         template<class Type>
         class fpoint{
         public:
             typedef Type type;
+            typedef mp_info<mp_limb_t> mp_info_type;
 
             inline fpoint() : exp_(), frac_(){}
 
@@ -368,14 +387,14 @@ namespace cmpxx{
 
             fpoint(double x) : exp_(), frac_(){
                 static const std::size_t
-                    digits = static_cast<std::size_t>(std::numeric_limits<mp_limb_t>::digits),
-                    mask = digits - 1,
-                    shift = rightmost_zero_seq_num(digits);
+                    digits = mp_info_type::digits,
+                    mask = mp_info_type::mask,
+                    shift = mp_info_type::rightmost_zero_seq_num;
+                if(x == 0.0){ return; }
                 bool sign = x >= 0.0;
                 if(x < 0.0){ x = -x; }
                 std::size_t prec = get_prec();
                 mpz_ptr z = frac_.get_raw_value().get_mpz_t();
-                mp_limb_t *data = z->_mp_d;
                 double x_frac;
                 int x_exp;
                 x_frac = std::frexp(x, &x_exp);
@@ -391,44 +410,32 @@ namespace cmpxx{
                 std::size_t exp = exp_.get_raw_value().get_ui();
                 std::size_t bit_counter = 0;
                 double frac_bit = 0.5;
-                if(exp_ > 0){
-                    for(
-                        ;
-                        (bit_counter >> shift) < prec &&
-                            bit_counter < static_cast<std::size_t>(x_exp) &&
-                            x_frac > 0 &&
-                            frac_bit > 0;
-                        ++bit_counter
-                    ){
-                        frac_ <<= 1;
-                        if(x_frac >= frac_bit){
-                            frac_ += 1;
-                            x_frac -= frac_bit;
-                        }
-                        frac_bit /= 2.0;
+                mpz_realloc2(z, prec * digits);
+                mpn_zero(z->_mp_d, prec);
+                z->_mp_size = z->_mp_alloc;
+                mp_limb_t *data = z->_mp_d;
+                std::size_t n = prec - exp;
+                for(
+                    ;
+                    (bit_counter >> shift) < prec && bit_counter < static_cast<std::size_t>(x_exp) && x_frac > 0 && frac_bit > 0;
+                    ++bit_counter
+                ){
+                    if(x_frac >= frac_bit){
+                        data[prec - 1 - (bit_counter >> shift)] |= 1 << (bit_counter & mask);
+                        x_frac -= frac_bit;
                     }
-                    bit_counter = 0;
+                    frac_bit /= 2.0;
                 }
-                if(exp < prec){
-                    std::size_t n = prec - exp;
-                    frac_ <<= n * digits;
-                    if(z->_mp_size == 0){
-                        mpz_realloc2(z, prec * digits);
-                        mpn_zero(z->_mp_d, prec);
-                        z->_mp_size = z->_mp_alloc;
+                for(
+                    bit_counter = 0;
+                    (bit_counter >> shift) < prec && x_frac > 0 && frac_bit > 0;
+                    ++bit_counter
+                ){
+                    if(x_frac >= frac_bit){
+                        data[n - 1 - (bit_counter >> shift)] |= 1 << (digits - 1 - (bit_counter & mask));
+                        x_frac -= frac_bit;
                     }
-                    data = z->_mp_d;
-                    for(
-                        ;
-                        (bit_counter >> shift) < prec && x_frac > 0 && frac_bit > 0;
-                        ++bit_counter
-                    ){
-                        if(x_frac >= frac_bit){
-                            data[n - 1 - (bit_counter >> shift)] |= 1 << (digits - 1 - (bit_counter & mask));
-                            x_frac -= frac_bit;
-                        }
-                        frac_bit /= 2.0;
-                    }
+                    frac_bit /= 2.0;
                 }
                 if(!sign){ z->_mp_size *= -1; }
             }
@@ -436,7 +443,7 @@ namespace cmpxx{
             integer integer_portion() const{
                 if(exp_ <= 0){ return integer::mp_type(0); }
                 const std::size_t
-                    digits = std::numeric_limits<mp_limb_t>::digits,
+                    digits = mp_info_type::digits,
                     prec = mpz_size(frac_.get_raw_value().get_mpz_t()),
                     exp = exp_.get_raw_value().get_ui();
                 if(exp < prec){
@@ -451,11 +458,14 @@ namespace cmpxx{
                 mpz_srcptr z = frac_.get_raw_value().get_mpz_t();
                 mpz_ptr w = x.frac_.get_raw_value().get_mpz_t();
                 const std::size_t
-                    digits = std::numeric_limits<mp_limb_t>::digits,
+                    digits = mp_info_type::digits,
                     prec = mpz_size(z),
                     e = exp_.get_raw_value().get_ui();
                 std::size_t n = prec - e;
-                while(z->_mp_d[prec - e - n] == 0){ --n; }
+                do{
+                    if(n == 0){ return x; }
+                    --n;
+                }while(z->_mp_d[prec - e - n] == 0);
                 mpz_realloc2(w, n * digits);
                 w->_mp_size = w->_mp_alloc;
                 mpn_copyi(w->_mp_d, z->_mp_d + prec - e - n, n);
@@ -480,15 +490,6 @@ namespace cmpxx{
             }
 
         private:
-            inline static std::size_t rightmost_zero_seq_num(std::size_t i){
-                std::size_t n = 0;
-                while((i & 1) == 0){
-                    ++n;
-                    i >>= 1;
-                }
-                return n;
-            }
-
             inline static std::size_t &prec_impl(){
                 static std::size_t value = 2;
                 return value;
@@ -506,7 +507,7 @@ namespace cmpxx{
 
 int main(){
     cmpxx::fpoint::set_prec(8);
-    cmpxx::fpoint f = 4294967296.0 + 1.0 / 2.0 + 1.0 / 8.0 + 1.0 / 16.0;
+    cmpxx::fpoint f = 4294967296.0 * 3.0 + 1.0 / 2.0 + 1.0 / 8.0 + 1.0 / 16.0;
     std::cout
         << f.integer_portion().get_raw_value().get_str(16) << "\n"
         << f.frac_portion().frac().get_raw_value().get_str(16) << "\n";
