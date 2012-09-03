@@ -298,7 +298,7 @@ namespace cmpxx{
         CMPXX_DEFINE_BUILT_IN_TYPE_OVERLOAD_RETURN_TYPE \
     )
 
-#define CMPXX_DEFINE_BOOLIAN_OVERLOAD(op, e)   \
+#define CMPXX_DEFINE_BOOLEAN_OVERLOAD(op, e)   \
     CMPXX_DEFINE_EXPR_OVERLOAD(                \
         op,                                    \
         e,                                     \
@@ -323,12 +323,12 @@ CMPXX_DEFINE_OVERLOAD(operator |, __gmp_binary_ior);
 CMPXX_DEFINE_OVERLOAD(operator ^, __gmp_binary_xor);
 CMPXX_DEFINE_BINARY_UI_OVERLOAD(operator <<, __gmp_binary_lshift);
 CMPXX_DEFINE_BINARY_UI_OVERLOAD(operator >>, __gmp_binary_rshift);
-CMPXX_DEFINE_BOOLIAN_OVERLOAD(operator <, __gmp_binary_less);
-CMPXX_DEFINE_BOOLIAN_OVERLOAD(operator >, __gmp_binary_greater);
-CMPXX_DEFINE_BOOLIAN_OVERLOAD(operator <=, __gmp_binary_less_equal);
-CMPXX_DEFINE_BOOLIAN_OVERLOAD(operator >=, __gmp_binary_greater_equal);
-CMPXX_DEFINE_BOOLIAN_OVERLOAD(operator ==, __gmp_binary_equal);
-CMPXX_DEFINE_BOOLIAN_OVERLOAD(operator !=, __gmp_binary_not_equal);
+CMPXX_DEFINE_BOOLEAN_OVERLOAD(operator <, __gmp_binary_less);
+CMPXX_DEFINE_BOOLEAN_OVERLOAD(operator >, __gmp_binary_greater);
+CMPXX_DEFINE_BOOLEAN_OVERLOAD(operator <=, __gmp_binary_less_equal);
+CMPXX_DEFINE_BOOLEAN_OVERLOAD(operator >=, __gmp_binary_greater_equal);
+CMPXX_DEFINE_BOOLEAN_OVERLOAD(operator ==, __gmp_binary_equal);
+CMPXX_DEFINE_BOOLEAN_OVERLOAD(operator !=, __gmp_binary_not_equal);
 CMPXX_DEFINE_UNARY_OVERLOAD(abs, __gmp_abs_function)
 CMPXX_DEFINE_UNARY_OVERLOAD(trunc, __gmp_trunc_function)
 CMPXX_DEFINE_UNARY_OVERLOAD(floor, __gmp_floor_function)
