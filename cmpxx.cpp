@@ -40,10 +40,6 @@ namespace cmpxx{
                 value_(wrapped_expr.expr)
             {}
 
-            inline explicit mp_wrapper(const char *s) :
-                value_(s)
-            {}
-
             inline mp_wrapper(const char *s, int base) :
                 value_(s, base)
             {}
@@ -416,6 +412,11 @@ namespace cmpxx{
                 if(exp < prec){
                     std::size_t n = prec - exp;
                     frac_ <<= n * digits;
+                    if(z->_mp_size == 0){
+                        mpz_realloc2(z, prec * digits);
+                        mpn_zero(z->_mp_d, prec);
+                        z->_mp_size = z->_mp_alloc;
+                    }
                     data = z->_mp_d;
                     for(
                         ;
@@ -433,7 +434,7 @@ namespace cmpxx{
             }
 
             integer integer_portion() const{
-                if(exp_ <= 0){ return integer(0); }
+                if(exp_ <= 0){ return integer::mp_type(0); }
                 const std::size_t
                     digits = std::numeric_limits<mp_limb_t>::digits,
                     prec = mpz_size(frac_.get_raw_value().get_mpz_t()),
@@ -446,7 +447,6 @@ namespace cmpxx{
             }
 
             fpoint frac_portion() const{
-                if(exp_ <= 0){ return *this; }
                 fpoint x;
                 mpz_srcptr z = frac_.get_raw_value().get_mpz_t();
                 mpz_ptr w = x.frac_.get_raw_value().get_mpz_t();
