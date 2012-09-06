@@ -1,5 +1,7 @@
 # 概要
-コンパイルにはGNU MP（Unix Like System : http://gmplib.org, Windows : http://www.mpir.org）が必要となります。  
+コンパイルにはGNU MP  
+（Unix Like System : http://gmplib.org , Windows : http://www.mpir.org ）  
+が必要となります。  
 
 ## 動作確認
 * MSVC 10.0  
@@ -7,12 +9,13 @@
 
 ## cmpxx::integer
 GNU MPのmpz_classと同じ働きをします。  
-右辺値参照が利用可能になっています。
+右辺値参照が利用可能となっています。
 
 ## cmpxx::rational
 GNU MPのmpq_classと同じ働きをします。  
-右辺値参照が利用可能になっています。
+右辺値参照が利用可能となっています。
 
-## cmpxx::fpoint
+## cmpxx::mp_float
 製作中です。  
-cmpxx::integerを利用した、仮数部が多倍精度の事実上どんな巨大な値でも表現できる型になる予定です。
+cmpxx::integerを利用した、基数が2^std::numeric_limits<mp_limb_t>::digitsの  
+浮動小数点数型として機能します。

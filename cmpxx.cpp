@@ -3,7 +3,11 @@
 #include <limits>
 #include <cmath>
 #include <cstdlib>
+#include <cassert>
 #include <gmpxx.h>
+
+// debug
+#include <iostream>
 
 namespace cmpxx{
     namespace aux{
@@ -359,43 +363,320 @@ namespace cmpxx{
         };
 
         template<class Type>
-        class fpoint{
+        class mp_float{
         public:
             typedef Type type;
             typedef mp_info<mp_limb_t> mp_info_type;
 
-            inline fpoint() : exp_(), frac_(){}
+            inline mp_float() : exp_(), frac_(){}
 
-            inline fpoint(const fpoint &other) : exp_(other.exp_), frac_(other.frac_){}
+            inline mp_float(const mp_float &other) : exp_(other.exp_), frac_(other.frac_){}
 
-            inline fpoint(fpoint &&other) :
+            inline mp_float(mp_float &&other) :
                 exp_(), frac_()
-            {
-                typedef std::aligned_storage<
-                    sizeof(integer),
-                    std::alignment_of<integer>::value
-                >::type pod_of_integer;
-                std::swap(
-                    *static_cast<pod_of_integer*>(static_cast<void*>(&exp_)),
-                    *static_cast<pod_of_integer*>(static_cast<void*>(&other.exp_))
-                );
-                std::swap(
-                    *static_cast<pod_of_integer*>(static_cast<void*>(&frac_)),
-                    *static_cast<pod_of_integer*>(static_cast<void*>(&other.frac_))
-                );
+            { swap(other); }
+
+            mp_float(double x) : exp_(), frac_(){
+                set(x);
             }
 
-            fpoint(double x) : exp_(), frac_(){
-                static const std::size_t
+            mp_float(long double x) : exp_(), frac_(){
+                set(x);
+            }
+
+            inline mp_float &operator =(const mp_float &other){
+                exp_ = other.exp_;
+                frac_ = other.frac_;
+                return *this;
+            }
+
+            inline mp_float &operator =(mp_float &&other){
+                swap(other);
+                return *this;
+            }
+
+            inline bool operator <(const mp_float &other) const{
+                return less(*this, other);
+            }
+
+            inline bool operator <=(const mp_float &other) const{
+                return less_equal(*this, other);
+            }
+
+            inline bool operator >(const mp_float &other) const{
+                return greater(*this, other);
+            }
+
+            inline bool operator >=(const mp_float &other) const{
+                return greater_equal(*this, other);
+            }
+
+            inline bool operator ==(const mp_float &other) const{
+                return equal(*this, other);
+            }
+
+            inline bool operator !=(const mp_float &other) const{
+                return not_equal(*this, other);
+            }
+
+            integer integer_portion() const{
+                if(exp_ <= 0){ return integer::mp_type(0); }
+                const std::size_t
+                    digits = mp_info_type::digits,
+                    p = prec();
+                if(exp_ < static_cast<int>(p)){
+                    return frac_ >> ((p - exp_) * digits);
+                }else{
+                    return frac_ << ((exp_ - p) * digits);
+                }
+            }
+
+            mp_float frac_portion() const{
+                if(exp_ <= 0){ return *this; }
+                mp_float x;
+                mpz_srcptr z = frac_.get_raw_value().get_mpz_t();
+                mpz_ptr w = x.frac_.get_raw_value().get_mpz_t();
+                const std::size_t
+                    digits = mp_info_type::digits,
+                    p = prec(),
+                    e = static_cast<std::size_t>(exp_);
+                std::size_t n = p - e;
+                do{
+                    if(n == 0){ return x; }
+                    --n;
+                }while(z->_mp_d[p - e - n] == 0);
+                mpz_realloc2(w, n * digits);
+                w->_mp_size = w->_mp_alloc;
+                mpn_copyi(w->_mp_d, z->_mp_d + p - e - n, n);
+                return x;
+            }
+
+            inline int exp() const{
+                return exp_;
+            }
+
+            inline const integer &frac() const{
+                return frac_;
+            }
+
+            inline const int sign() const{
+                return mpz_sgn(frac_.get_raw_value().get_mpz_t());
+            }
+
+            inline std::size_t prec() const{
+                return mpz_size(frac_.get_raw_value().get_mpz_t());
+            }
+
+            inline static std::size_t get_global_prec(){
+                return prec_impl();
+            }
+
+            inline static void set_global_prec(std::size_t value){
+                if(value < 2){ value = 2; }
+                prec_impl() = value;
+            }
+
+            inline static mp_float add(const mp_float &lhs, const mp_float &rhs){
+                int lhs_sign = sgn(lhs.frac_.get_raw_value()), rhs_sign = sgn(rhs.frac_.get_raw_value());
+                if(lhs_sign == rhs_sign){
+                    if(lhs.exp_ >= rhs.exp_){
+                        mp_float r(add_impl(lhs, rhs));
+                        r.set_sign(lhs_sign);
+                        return r;
+                    }else{
+                        mp_float r(add_impl(rhs, lhs));
+                        r.set_sign(lhs_sign);
+                        return r;
+                    }
+                }else{
+                    if(lhs >= rhs){
+                        mp_float r(sub_impl(lhs, rhs));
+                        r.set_sign(lhs_sign);
+                        return r;
+                    }else{
+                        mp_float r(sub_impl(rhs, lhs));
+                        r.set_sign(rhs_sign);
+                        return r;
+                    }
+                }
+            }
+
+            inline static mp_float sub(const mp_float &lhs, const mp_float &rhs){
+                int lhs_sign = lhs.sign(), rhs_sign = rhs.sign();
+                if(lhs_sign == rhs_sign){
+                    if(lhs >= rhs){
+                        mp_float r(sub_impl(lhs, rhs));
+                        r.set_sign(lhs_sign);
+                        return r;
+                    }else{
+                        mp_float r(sub_impl(rhs, lhs));
+                        r.set_sign(rhs_sign);
+                        return r;
+                    }
+                }else{
+                    if(lhs.exp_ >= rhs.exp_){
+                        mp_float r(add_impl(lhs, rhs));
+                        r.set_sign(lhs_sign);
+                        return r;
+                    }else{
+                        mp_float r(add_impl(rhs, lhs));
+                        r.set_sign(lhs_sign);
+                        return r;
+                    }
+                }
+            }
+
+            inline static bool qeual(const mp_float &lhs, const mp_float &rhs){
+                lhs.exp_ == rhs.exp_ && lhs.frac_ == rhs.frac_;
+            }
+
+            inline static bool not_equal(const mp_float &lhs, const mp_float &rhs){
+                return !equal(lhs, rhs);
+            }
+
+            inline static bool less(const mp_float &lhs, const mp_float &rhs){
+                int lhs_sign = lhs.sign();
+                if(lhs_sign == rhs.sign()){
+                    if(lhs_sign){
+                        return lhs.exp_ < rhs.exp_ || (lhs.exp_ == rhs.exp_ && lhs.frac_ < rhs.frac_);
+                    }else{
+                        return lhs.exp_ > rhs.exp_ || (lhs.exp_ == rhs.exp_ && lhs.frac_ > rhs.frac_);
+                    }
+                }else{
+                    return lhs_sign < 0;
+                }
+            }
+
+            inline static bool greater(const mp_float &lhs, const mp_float &rhs){
+                return less(rhs, lhs);
+            }
+
+            inline static bool less_equal(const mp_float &lhs, const mp_float &rhs){
+                int lhs_sign = lhs.sign(), rhs_sign = rhs.sign();
+                if(lhs_sign == rhs_sign){
+                    if(lhs_sign >= 0){
+                        if(lhs.exp_ < rhs.exp_){
+                            return true;
+                        }else if(lhs.exp_ == rhs.exp_){
+                            return lhs.frac_ <= rhs.frac_;
+                        }else{
+                            return false;
+                        }
+                    }else{
+                        if(lhs.exp_ > rhs.exp_){
+                            return true;
+                        }else if(lhs.exp_ == rhs.exp_){
+                            return lhs.frac_ >= rhs.frac_;
+                        }else{
+                            return false;
+                        }
+                    }
+                }else{
+                    return (lhs_sign < 0 && rhs_sign) || (lhs.frac_ == 0 && rhs.frac_ == 0);
+                }
+            }
+
+            inline static bool greater_equal(const mp_float &lhs, const mp_float &rhs){
+                return less_equal(rhs, lhs);
+            }
+
+        private:
+            inline static mp_float add_impl(const mp_float &lhs, const mp_float &rhs){
+                const std::size_t p = lhs.prec(), q = rhs.prec();
+                mp_float r;
+                r.exp_ = lhs.exp_;
+                int exp_diff = lhs.exp_ - rhs.exp_;
+                if(exp_diff >= static_cast<int>(p + 2)){
+                    r.frac_ = lhs.frac_;
+                    return r;
+                }
+                if(p == q){
+                    r.frac_ = (rhs.frac_ >> (exp_diff * mp_info_type::digits)) + lhs.frac_;
+                    r.normalize(p);
+                }else if(p > q){
+                    r.frac_ = ((rhs.frac_ << ((p - q) * mp_info_type::digits)) >> (exp_diff * mp_info_type::digits)) + lhs.frac_;
+                    r.normalize(p);
+                }else /* if(p < q) */{
+                    r.frac_ = (rhs.frac_ >> (exp_diff * mp_info_type::digits)) + (lhs.frac_ << ((q - p) * mp_info_type::digits));
+                    r.normalize(q);
+                }
+                return r;
+            }
+
+            inline static mp_float sub_impl(const mp_float &lhs, const mp_float &rhs){
+                const std::size_t p = lhs.prec(), q = rhs.prec();
+                mp_float r;
+                r.exp_ = lhs.exp_;
+                int exp_diff = lhs.exp_ - rhs.exp_;
+                if(exp_diff >= static_cast<int>(p + 2)){
+                    r.frac_ = lhs.frac_;
+                    return r;
+                }
+                if(p == q){
+                    r.frac_ = lhs.frac_ - (rhs.frac_ >> (exp_diff * mp_info_type::digits));
+                    r.normalize(p);
+                }else if(p > q){
+                    r.frac_ = lhs.frac_ - ((rhs.frac_ << ((p - q) * mp_info_type::digits)) >> (exp_diff * mp_info_type::digits));
+                    r.normalize(p);
+                }else /* if(p < q) */{
+                    r.frac_ = (lhs.frac_ << ((q - p) * mp_info_type::digits)) - (rhs.frac_ >> (exp_diff * mp_info_type::digits));
+                    r.normalize(q);
+                }
+                return r;
+            }
+
+            inline void normalize(const std::size_t p){
+                // n1
+                if(frac_ == 0){
+                    exp_ = 0;
+                    return;
+                }else if(prec() > p){
+                    goto n4;
+                }
+
+                // n2
+                n2:;
+                if(
+                    prec() == p &&
+                    (
+                        exp_ > 0 ||
+                        (exp_ == 0 && frac_ >= static_cast<mp_limb_t>(1 << (mp_info_type::digits - 1)))
+                    )
+                ){ goto n5; }
+
+                // n3
+                --exp_;
+                frac_ <<= mp_info_type::digits;
+                goto n2;
+
+                // n4
+                n4:;
+                ++exp_;
+                frac_ >>= mp_info_type::digits;
+
+                // n5
+                n5:;
+                {
+                    mp_limb_t *data = frac_.get_raw_value().get_mpz_t()->_mp_d, u = data[0];
+                    if(u != 0){
+                        frac_ += ~u + 1;
+                        if(data[p - 1] == 1){ goto n4; }
+                    }
+                }
+            }
+
+            template<class Float>
+            void set(Float x){
+                const std::size_t
                     digits = mp_info_type::digits,
                     mask = mp_info_type::mask,
                     shift = mp_info_type::rightmost_zero_seq_num;
                 if(x == 0.0){ return; }
                 bool sign = x >= 0.0;
                 if(x < 0.0){ x = -x; }
-                std::size_t prec = get_prec();
+                std::size_t p = get_global_prec();
                 mpz_ptr z = frac_.get_raw_value().get_mpz_t();
-                double x_frac;
+                Float x_frac;
                 int x_exp;
                 x_frac = std::frexp(x, &x_exp);
                 if(x_exp >= 0){
@@ -405,112 +686,85 @@ namespace cmpxx{
                     x_exp *= -1;
                     exp_ = x_exp / digits;
                     if(x_exp % digits != 0){ ++exp_; }
-                    exp_.get_raw_value().get_mpz_t()->_mp_size *= -1;
+                    exp_ *= -1;
                 }
-                std::size_t exp = exp_.get_raw_value().get_ui();
-                std::size_t bit_counter = 0;
-                double frac_bit = 0.5;
-                mpz_realloc2(z, prec * digits);
-                mpn_zero(z->_mp_d, prec);
+                Float frac_bit = 0.5;
+                mpz_realloc2(z, p * digits);
+                mpn_zero(z->_mp_d, p);
                 z->_mp_size = z->_mp_alloc;
                 mp_limb_t *data = z->_mp_d;
-                std::size_t n = prec - exp;
+                std::size_t n = p - exp_;
                 for(
-                    ;
-                    (bit_counter >> shift) < prec && bit_counter < static_cast<std::size_t>(x_exp) && x_frac > 0 && frac_bit > 0;
-                    ++bit_counter
+                    std::size_t bit_counter = 0;
+                    (bit_counter >> shift) < p && bit_counter < static_cast<std::size_t>(x_exp) && x_frac > 0 && frac_bit > 0;
+                    ++bit_counter, frac_bit /= 2.0
                 ){
                     if(x_frac >= frac_bit){
-                        data[prec - 1 - (bit_counter >> shift)] |= 1 << (bit_counter & mask);
+                        data[p - 1 - (bit_counter >> shift)] |= 1 << (bit_counter & mask);
                         x_frac -= frac_bit;
                     }
-                    frac_bit /= 2.0;
                 }
-                for(
-                    bit_counter = 0;
-                    (bit_counter >> shift) < prec && x_frac > 0 && frac_bit > 0;
-                    ++bit_counter
-                ){
-                    if(x_frac >= frac_bit){
-                        data[n - 1 - (bit_counter >> shift)] |= 1 << (digits - 1 - (bit_counter & mask));
-                        x_frac -= frac_bit;
+                if(n <= p){
+                    for(
+                        std::size_t bit_counter = 0;
+                        (bit_counter >> shift) < p && x_frac > 0 && frac_bit > 0;
+                        ++bit_counter, frac_bit /= 2.0
+                    ){
+                        if(x_frac >= frac_bit){
+                            data[n - 1 - (bit_counter >> shift)] |= 1 << (digits - 1 - (bit_counter & mask));
+                            x_frac -= frac_bit;
+                        }
                     }
-                    frac_bit /= 2.0;
                 }
                 if(!sign){ z->_mp_size *= -1; }
             }
 
-            integer integer_portion() const{
-                if(exp_ <= 0){ return integer::mp_type(0); }
-                const std::size_t
-                    digits = mp_info_type::digits,
-                    prec = mpz_size(frac_.get_raw_value().get_mpz_t()),
-                    exp = exp_.get_raw_value().get_ui();
-                if(exp < prec){
-                    return frac_ >> ((prec - exp) * digits);
-                }else{
-                    return frac_ << ((exp - prec) * digits);
-                }
+            inline void swap(mp_float &other){
+                typedef std::aligned_storage<
+                    sizeof(integer),
+                    std::alignment_of<integer>::value
+                >::type pod_of_integer;
+                std::swap(exp_, other.exp_);
+                std::swap(
+                    *static_cast<pod_of_integer*>(static_cast<void*>(&frac_)),
+                    *static_cast<pod_of_integer*>(static_cast<void*>(&other.frac_))
+                );
             }
 
-            fpoint frac_portion() const{
-                fpoint x;
-                mpz_srcptr z = frac_.get_raw_value().get_mpz_t();
-                mpz_ptr w = x.frac_.get_raw_value().get_mpz_t();
-                const std::size_t
-                    digits = mp_info_type::digits,
-                    prec = mpz_size(z),
-                    e = exp_.get_raw_value().get_ui();
-                std::size_t n = prec - e;
-                do{
-                    if(n == 0){ return x; }
-                    --n;
-                }while(z->_mp_d[prec - e - n] == 0);
-                mpz_realloc2(w, n * digits);
-                w->_mp_size = w->_mp_alloc;
-                mpn_copyi(w->_mp_d, z->_mp_d + prec - e - n, n);
-                return x;
+            inline void set_sign(int s){
+                frac_.get_raw_value().get_mpz_t()->_mp_size *= s;
             }
 
-            inline static void set_prec(std::size_t value){
-                if(value < 2){ value = 2; }
-                prec_impl() = value;
-            }
-
-            inline static std::size_t get_prec(){
-                return prec_impl();
-            }
-
-            inline const integer &exp() const{
-                return exp_;
-            }
-
-            inline const integer &frac() const{
-                return frac_;
-            }
-
-        private:
             inline static std::size_t &prec_impl(){
                 static std::size_t value = 2;
                 return value;
             }
 
-            integer exp_, frac_;
+            integer frac_;
+            int exp_;
+
+            static_assert(sizeof(int) >= sizeof(mp_limb_t), "sizeof(int) < sizeof(mp_limb_t)");
         };
     }
 
-    typedef aux::fpoint<void> fpoint;
+    typedef aux::mp_float<void> mp_float;
 }
 
 // test
 #include <iostream>
 
 int main(){
-    cmpxx::fpoint::set_prec(8);
-    cmpxx::fpoint f = 4294967296.0 * 3.0 + 1.0 / 2.0 + 1.0 / 8.0 + 1.0 / 16.0;
-    std::cout
-        << f.integer_portion().get_raw_value().get_str(16) << "\n"
-        << f.frac_portion().frac().get_raw_value().get_str(16) << "\n";
+    cmpxx::mp_float::set_global_prec(4);
+     // cmpxx::mp_float f = 4294967295.0 + 1.0 / 2.0 + 1.0 / 8.0 + 1.0 / 16.0;
+    cmpxx::mp_float f = 0.0000001;
+    std::cout << "f : " << f.frac().get_raw_value().get_str(16) << "\n";
+    // cmpxx::mp_float g = 1.0;
+    cmpxx::mp_float g = 0.9999999;
+    std::cout << "g : " << g.frac().get_raw_value().get_str(16) << "\n";
+    cmpxx::mp_float h;
+    h = cmpxx::mp_float::add(f, g);
+    std::cout << h.integer_portion().get_raw_value().get_str(16) << "\n";
+    std::cout << h.frac_portion().frac().get_raw_value().get_str(16) << "\n";
 
     return 0;
 }
