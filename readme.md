@@ -17,5 +17,5 @@ GNU MPのmpq_classと同じ働きをします。
 
 ## cmpxx::mp_float
 製作中です。  
-cmpxx::integerを利用した、基数が2^std::numeric_limits<mp_limb_t>::digitsの  
+cmpxx::integerを利用した、基数が2^std::numeric_limits&lt;mp_limb_t&gt;::digitsの  
 浮動小数点数型として機能します。
