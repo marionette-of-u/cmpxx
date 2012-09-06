@@ -77,31 +77,31 @@ namespace cmpxx{
                 return *this;
             }
 
-            #define CMPXX_DEFINE_ASSIGN_OPERATOR(type)     \
-                inline mp_wrapper &operator =(type value){ \
-                    get_raw_value() = value;               \
-                    return *this;                          \
-                }
-
-            CMPXX_DEFINE_ASSIGN_OPERATOR(signed char);
-            CMPXX_DEFINE_ASSIGN_OPERATOR(unsigned char);
-            CMPXX_DEFINE_ASSIGN_OPERATOR(signed int);
-            CMPXX_DEFINE_ASSIGN_OPERATOR(unsigned int);
-            CMPXX_DEFINE_ASSIGN_OPERATOR(signed short int);
-            CMPXX_DEFINE_ASSIGN_OPERATOR(unsigned short int);
-            CMPXX_DEFINE_ASSIGN_OPERATOR(signed long int);
-            CMPXX_DEFINE_ASSIGN_OPERATOR(unsigned long int);
-            CMPXX_DEFINE_ASSIGN_OPERATOR(float);
-            CMPXX_DEFINE_ASSIGN_OPERATOR(double);
-            CMPXX_DEFINE_ASSIGN_OPERATOR(long double);
-
-            #define CMPXX_DEFINE_COMPOUND_OPERATOR_IMPL(op, type) \
-                inline mp_wrapper &op(type value){                \
-                    get_raw_value().op(value);                    \
+            #define CMPXX_MP_WRAPPER_DEFINE_ASSIGN_OPERATOR(type) \
+                inline mp_wrapper &operator =(type value){        \
+                    get_raw_value() = value;                      \
                     return *this;                                 \
                 }
 
-            #define CMPXX_DEFINE_COMPOUND_OPERATOR(op)                       \
+            CMPXX_MP_WRAPPER_DEFINE_ASSIGN_OPERATOR(signed char);
+            CMPXX_MP_WRAPPER_DEFINE_ASSIGN_OPERATOR(unsigned char);
+            CMPXX_MP_WRAPPER_DEFINE_ASSIGN_OPERATOR(signed int);
+            CMPXX_MP_WRAPPER_DEFINE_ASSIGN_OPERATOR(unsigned int);
+            CMPXX_MP_WRAPPER_DEFINE_ASSIGN_OPERATOR(signed short int);
+            CMPXX_MP_WRAPPER_DEFINE_ASSIGN_OPERATOR(unsigned short int);
+            CMPXX_MP_WRAPPER_DEFINE_ASSIGN_OPERATOR(signed long int);
+            CMPXX_MP_WRAPPER_DEFINE_ASSIGN_OPERATOR(unsigned long int);
+            CMPXX_MP_WRAPPER_DEFINE_ASSIGN_OPERATOR(float);
+            CMPXX_MP_WRAPPER_DEFINE_ASSIGN_OPERATOR(double);
+            CMPXX_MP_WRAPPER_DEFINE_ASSIGN_OPERATOR(long double);
+
+            #define CMPXX_MP_WRAPPER_DEFINE_COMPOUND_OPERATOR_IMPL(op, type) \
+                inline mp_wrapper &op(type value){                           \
+                    get_raw_value().op(value);                               \
+                    return *this;                                            \
+                }
+
+            #define CMPXX_MP_WRAPPER_DEFINE_COMPOUND_OPERATOR(op)            \
                 inline mp_wrapper &op(const mp_wrapper &other){              \
                     get_raw_value().op(other.get_raw_value());               \
                     return *this;                                            \
@@ -118,46 +118,46 @@ namespace cmpxx{
                     get_raw_value().op(raw_value);                           \
                     return *this;                                            \
                 }                                                            \
-                CMPXX_DEFINE_COMPOUND_OPERATOR_IMPL(op, signed char);        \
-                CMPXX_DEFINE_COMPOUND_OPERATOR_IMPL(op, unsigned char);      \
-                CMPXX_DEFINE_COMPOUND_OPERATOR_IMPL(op, signed int);         \
-                CMPXX_DEFINE_COMPOUND_OPERATOR_IMPL(op, unsigned int);       \
-                CMPXX_DEFINE_COMPOUND_OPERATOR_IMPL(op, signed short int);   \
-                CMPXX_DEFINE_COMPOUND_OPERATOR_IMPL(op, unsigned short int); \
-                CMPXX_DEFINE_COMPOUND_OPERATOR_IMPL(op, signed long int);    \
-                CMPXX_DEFINE_COMPOUND_OPERATOR_IMPL(op, unsigned long int);  \
-                CMPXX_DEFINE_COMPOUND_OPERATOR_IMPL(op, float);              \
-                CMPXX_DEFINE_COMPOUND_OPERATOR_IMPL(op, double);             \
-                CMPXX_DEFINE_COMPOUND_OPERATOR_IMPL(op, long double);
+                CMPXX_MP_WRAPPER_DEFINE_COMPOUND_OPERATOR_IMPL(op, signed char);        \
+                CMPXX_MP_WRAPPER_DEFINE_COMPOUND_OPERATOR_IMPL(op, unsigned char);      \
+                CMPXX_MP_WRAPPER_DEFINE_COMPOUND_OPERATOR_IMPL(op, signed int);         \
+                CMPXX_MP_WRAPPER_DEFINE_COMPOUND_OPERATOR_IMPL(op, unsigned int);       \
+                CMPXX_MP_WRAPPER_DEFINE_COMPOUND_OPERATOR_IMPL(op, signed short int);   \
+                CMPXX_MP_WRAPPER_DEFINE_COMPOUND_OPERATOR_IMPL(op, unsigned short int); \
+                CMPXX_MP_WRAPPER_DEFINE_COMPOUND_OPERATOR_IMPL(op, signed long int);    \
+                CMPXX_MP_WRAPPER_DEFINE_COMPOUND_OPERATOR_IMPL(op, unsigned long int);  \
+                CMPXX_MP_WRAPPER_DEFINE_COMPOUND_OPERATOR_IMPL(op, float);              \
+                CMPXX_MP_WRAPPER_DEFINE_COMPOUND_OPERATOR_IMPL(op, double);             \
+                CMPXX_MP_WRAPPER_DEFINE_COMPOUND_OPERATOR_IMPL(op, long double);
 
-            #define CMPXX_DEFINE_COMPOUND_OPERATOR_UI(op)        \
-                inline mp_wrapper &op(unsigned long int v){      \
-                    get_raw_value().op(v);                       \
-                    return *this;                                \
+            #define CMPXX_MP_WRAPPER_DEFINE_COMPOUND_OPERATOR_UI(op) \
+                inline mp_wrapper &op(unsigned long int v){          \
+                    get_raw_value().op(v);                           \
+                    return *this;                                    \
                 }
 
-            #define CMPXX_DEFINE_ID_OPERATOR(op)        \
-                inline mp_wrapper &op(){                \
-                    get_raw_value().op();               \
-                    return *this;                       \
-                }                                       \
-                inline mp_wrapper &op(int){             \
-                    get_raw_value().op(int());          \
-                    return *this;                       \
+            #define CMPXX_MP_WRAPPER_DEFINE_ID_OPERATOR(op) \
+                inline mp_wrapper &op(){                    \
+                    get_raw_value().op();                   \
+                    return *this;                           \
+                }                                           \
+                inline mp_wrapper &op(int){                 \
+                    get_raw_value().op(int());              \
+                    return *this;                           \
                 }
 
-            CMPXX_DEFINE_COMPOUND_OPERATOR(operator +=);
-            CMPXX_DEFINE_COMPOUND_OPERATOR(operator -=);
-            CMPXX_DEFINE_COMPOUND_OPERATOR(operator *=);
-            CMPXX_DEFINE_COMPOUND_OPERATOR(operator /=);
-            CMPXX_DEFINE_COMPOUND_OPERATOR(operator %=);
-            CMPXX_DEFINE_COMPOUND_OPERATOR(operator &=);
-            CMPXX_DEFINE_COMPOUND_OPERATOR(operator |=);
-            CMPXX_DEFINE_COMPOUND_OPERATOR(operator ^=);
-            CMPXX_DEFINE_COMPOUND_OPERATOR_UI(operator <<=);
-            CMPXX_DEFINE_COMPOUND_OPERATOR_UI(operator >>=);
-            CMPXX_DEFINE_ID_OPERATOR(operator ++);
-            CMPXX_DEFINE_ID_OPERATOR(operator --);
+            CMPXX_MP_WRAPPER_DEFINE_COMPOUND_OPERATOR(operator +=);
+            CMPXX_MP_WRAPPER_DEFINE_COMPOUND_OPERATOR(operator -=);
+            CMPXX_MP_WRAPPER_DEFINE_COMPOUND_OPERATOR(operator *=);
+            CMPXX_MP_WRAPPER_DEFINE_COMPOUND_OPERATOR(operator /=);
+            CMPXX_MP_WRAPPER_DEFINE_COMPOUND_OPERATOR(operator %=);
+            CMPXX_MP_WRAPPER_DEFINE_COMPOUND_OPERATOR(operator &=);
+            CMPXX_MP_WRAPPER_DEFINE_COMPOUND_OPERATOR(operator |=);
+            CMPXX_MP_WRAPPER_DEFINE_COMPOUND_OPERATOR(operator ^=);
+            CMPXX_MP_WRAPPER_DEFINE_COMPOUND_OPERATOR_UI(operator <<=);
+            CMPXX_MP_WRAPPER_DEFINE_COMPOUND_OPERATOR_UI(operator >>=);
+            CMPXX_MP_WRAPPER_DEFINE_ID_OPERATOR(operator ++);
+            CMPXX_MP_WRAPPER_DEFINE_ID_OPERATOR(operator --);
 
             inline const mp_type &get_raw_value() const{
                 return value_;
@@ -184,7 +184,7 @@ namespace cmpxx{
     }
 }
 
-#define CMPXX_DEFINE_UNARY_OVERLOAD(op, e)                                                   \
+#define CMPXX_MP_WRAPPER_DEFINE_UNARY_OVERLOAD(op, e)                                        \
     template<class T, class U>                                                               \
     cmpxx::aux::expr_wrapper<                                                                \
         __gmp_expr<T, __gmp_unary_expr<__gmp_expr<T, U>, e>>                                 \
@@ -194,7 +194,7 @@ namespace cmpxx{
         __gmp_expr<T, __gmp_unary_expr<__gmp_expr<T, U>, e>>                                 \
     > op(const cmpxx::aux::expr_wrapper<__gmp_expr<T, U>> &x){ return op(x.expr); }
 
-#define CMPXX_DEFINE_BINARY_UI_OVERLOAD(op, e)                                      \
+#define CMPXX_MP_WRAPPER_DEFINE_BINARY_UI_OVERLOAD(op, e)                           \
     template<class T, class U>                                                      \
     cmpxx::aux::expr_wrapper<                                                       \
         __gmp_expr<T, __gmp_binary_expr<__gmp_expr<T, U>, unsigned long int, e>>    \
@@ -208,54 +208,54 @@ namespace cmpxx{
         return op(l.expr, r);                                                       \
     }
 
-#define CMPXX_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL(op, e, type, bigtype, r_type) \
-    template<class T, class U>                                                 \
-    r_type(e, bigtype)                                                         \
-    op(const cmpxx::aux::mp_wrapper<__gmp_expr<T, U>> &l, type r){             \
-        return op(l.get_raw_value(), r);                                       \
-    }                                                                          \
-    template<class T, class U>                                                 \
-    r_type(e, bigtype)                                                         \
-    op(type l, const cmpxx::aux::mp_wrapper<__gmp_expr<T, U>> &r){             \
-        return op(l, r.get_raw_value());                                       \
-    }                                                                          \
-    template<class T, class U>                                                 \
-    r_type(e, bigtype)                                                         \
-    op(const cmpxx::aux::expr_wrapper<__gmp_expr<T, U>> &l, type r){           \
-        return op(l.expr, r);                                                  \
-    }                                                                          \
-    template<class T, class U>                                                 \
-    r_type(e, bigtype)                                                         \
-    op(type l, const cmpxx::aux::expr_wrapper<__gmp_expr<T, U>> &r){           \
-        return op(l ,r.expr);                                                  \
+#define CMPXX_MP_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL(op, e, type, bigtype, r_type) \
+    template<class T, class U>                                                            \
+    r_type(e, bigtype)                                                                    \
+    op(const cmpxx::aux::mp_wrapper<__gmp_expr<T, U>> &l, type r){                        \
+        return op(l.get_raw_value(), r);                                                  \
+    }                                                                                     \
+    template<class T, class U>                                                            \
+    r_type(e, bigtype)                                                                    \
+    op(type l, const cmpxx::aux::mp_wrapper<__gmp_expr<T, U>> &r){                        \
+        return op(l, r.get_raw_value());                                                  \
+    }                                                                                     \
+    template<class T, class U>                                                            \
+    r_type(e, bigtype)                                                                    \
+    op(const cmpxx::aux::expr_wrapper<__gmp_expr<T, U>> &l, type r){                      \
+        return op(l.expr, r);                                                             \
+    }                                                                                     \
+    template<class T, class U>                                                            \
+    r_type(e, bigtype)                                                                    \
+    op(type l, const cmpxx::aux::expr_wrapper<__gmp_expr<T, U>> &r){                      \
+        return op(l ,r.expr);                                                             \
     }
 
-#define CMPXX_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL_S(op, e, t, r) \
-    CMPXX_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL(op, e, t, signed long int, r)
+#define CMPXX_MP_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL_S(op, e, t, r) \
+    CMPXX_MP_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL(op, e, t, signed long int, r)
 
-#define CMPXX_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL_U(op, e, t, r) \
-    CMPXX_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL(op, e, t, unsigned long int, r)
+#define CMPXX_MP_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL_U(op, e, t, r) \
+    CMPXX_MP_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL(op, e, t, unsigned long int, r)
 
-#define CMPXX_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL_D(op, e, t, r) \
-    CMPXX_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL(op, e, t, double, r)
+#define CMPXX_MP_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL_D(op, e, t, r) \
+    CMPXX_MP_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL(op, e, t, double, r)
 
-#define CMPXX_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL_LD(op, e, t, r) \
-    CMPXX_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL(op, e, t, long double, r)
+#define CMPXX_MP_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL_LD(op, e, t, r) \
+    CMPXX_MP_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL(op, e, t, long double, r)
 
-#define CMPXX_DEFINE_BUILT_IN_TYPE_OVERLOAD(op, e, r)                        \
-    CMPXX_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL_S(op, e, signed char, r)        \
-    CMPXX_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL_U(op, e, unsigned char, r)      \
-    CMPXX_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL_S(op, e, signed int, r)         \
-    CMPXX_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL_U(op, e, unsigned int, r)       \
-    CMPXX_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL_S(op, e, signed short int, r)   \
-    CMPXX_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL_U(op, e, unsigned short int, r) \
-    CMPXX_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL_S(op, e, signed long int, r)    \
-    CMPXX_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL_U(op, e, unsigned long int, r)  \
-    CMPXX_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL_D(op, e, float, r)              \
-    CMPXX_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL_D(op, e, double, r)             \
-    CMPXX_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL_LD(op, e, long double, r)
+#define CMPXX_MP_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD(op, e, r)                        \
+    CMPXX_MP_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL_S(op, e, signed char, r)        \
+    CMPXX_MP_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL_U(op, e, unsigned char, r)      \
+    CMPXX_MP_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL_S(op, e, signed int, r)         \
+    CMPXX_MP_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL_U(op, e, unsigned int, r)       \
+    CMPXX_MP_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL_S(op, e, signed short int, r)   \
+    CMPXX_MP_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL_U(op, e, unsigned short int, r) \
+    CMPXX_MP_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL_S(op, e, signed long int, r)    \
+    CMPXX_MP_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL_U(op, e, unsigned long int, r)  \
+    CMPXX_MP_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL_D(op, e, float, r)              \
+    CMPXX_MP_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL_D(op, e, double, r)             \
+    CMPXX_MP_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL_LD(op, e, long double, r)
 
-#define CMPXX_DEFINE_EXPR_OVERLOAD(op, e, r_type)            \
+#define CMPXX_MP_WRAPPER_DEFINE_EXPR_OVERLOAD(op, e, r_type) \
     template<class T, class U, class V, class W>             \
     r_type(e, nil) op(                                       \
         const cmpxx::aux::mp_wrapper<__gmp_expr<T, U>> &l,   \
@@ -277,7 +277,7 @@ namespace cmpxx{
         const cmpxx::aux::mp_wrapper<__gmp_expr<V, W>> &r    \
     ){ return op(l.expr ,r.get_raw_value()); }
 
-#define CMPXX_DEFINE_OVERLOAD_RETURN_TYPE(e, bigtype)                \
+#define CMPXX_MP_WRAPPER_DEFINE_OVERLOAD_RETURN_TYPE(e, bigtype)     \
     cmpxx::aux::expr_wrapper<                                        \
         __gmp_expr<                                                  \
             typename __gmp_resolve_expr<T, V>::value_type,           \
@@ -285,59 +285,59 @@ namespace cmpxx{
         >                                                            \
     >
 
-#define CMPXX_DEFINE_BUILT_IN_TYPE_OVERLOAD_RETURN_TYPE(e, bigtype) \
+#define CMPXX_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD_RETURN_TYPE(e, bigtype) \
     cmpxx::aux::expr_wrapper<__gmp_expr<T, __gmp_binary_expr<__gmp_expr<T, U>, bigtype, e>>>
 
-#define CMPXX_DEFINE_OVERLOAD_RETURN_TYPE_BOOL(bigtype, e) bool
+#define CMPXX_WRAPPER_DEFINE_OVERLOAD_RETURN_TYPE_BOOL(bigtype, e) bool
 
-#define CMPXX_DEFINE_OVERLOAD(op, e)                    \
-    CMPXX_DEFINE_EXPR_OVERLOAD(                         \
-        op,                                             \
-        e,                                              \
-        CMPXX_DEFINE_OVERLOAD_RETURN_TYPE               \
-    )                                                   \
-    CMPXX_DEFINE_BUILT_IN_TYPE_OVERLOAD(                \
-        op,                                             \
-        e,                                              \
-        CMPXX_DEFINE_BUILT_IN_TYPE_OVERLOAD_RETURN_TYPE \
+#define CMPXX_MP_WRAPPER_DEFINE_OVERLOAD(op, e)                 \
+    CMPXX_MP_WRAPPER_DEFINE_EXPR_OVERLOAD(                      \
+        op,                                                     \
+        e,                                                      \
+        CMPXX_MP_WRAPPER_DEFINE_OVERLOAD_RETURN_TYPE            \
+    )                                                           \
+    CMPXX_MP_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD(             \
+        op,                                                     \
+        e,                                                      \
+        CMPXX_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD_RETURN_TYPE \
     )
 
-#define CMPXX_DEFINE_BOOLEAN_OVERLOAD(op, e)   \
-    CMPXX_DEFINE_EXPR_OVERLOAD(                \
-        op,                                    \
-        e,                                     \
-        CMPXX_DEFINE_OVERLOAD_RETURN_TYPE_BOOL \
-    )                                          \
-    CMPXX_DEFINE_BUILT_IN_TYPE_OVERLOAD(       \
-        op,                                    \
-        e,                                     \
-        CMPXX_DEFINE_OVERLOAD_RETURN_TYPE_BOOL \
+#define CMPXX_MP_WRAPPER_DEFINE_BOOLEAN_OVERLOAD(op, e)  \
+    CMPXX_MP_WRAPPER_DEFINE_EXPR_OVERLOAD(               \
+        op,                                              \
+        e,                                               \
+        CMPXX_WRAPPER_DEFINE_OVERLOAD_RETURN_TYPE_BOOL   \
+    )                                                    \
+    CMPXX_MP_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD(      \
+        op,                                              \
+        e,                                               \
+        CMPXX_WRAPPER_DEFINE_OVERLOAD_RETURN_TYPE_BOOL   \
     )
 
-CMPXX_DEFINE_UNARY_OVERLOAD(operator +, __gmp_unary_plus);
-CMPXX_DEFINE_UNARY_OVERLOAD(operator -, __gmp_unary_minus);
-CMPXX_DEFINE_UNARY_OVERLOAD(operator ~, __gmp_unary_com);
-CMPXX_DEFINE_OVERLOAD(operator +, __gmp_binary_plus);
-CMPXX_DEFINE_OVERLOAD(operator -, __gmp_binary_minus);
-CMPXX_DEFINE_OVERLOAD(operator *, __gmp_binary_multiplies);
-CMPXX_DEFINE_OVERLOAD(operator /, __gmp_binary_divides);
-CMPXX_DEFINE_OVERLOAD(operator %, __gmp_binary_modulus);
-CMPXX_DEFINE_OVERLOAD(operator &, __gmp_binary_and);
-CMPXX_DEFINE_OVERLOAD(operator |, __gmp_binary_ior);
-CMPXX_DEFINE_OVERLOAD(operator ^, __gmp_binary_xor);
-CMPXX_DEFINE_BINARY_UI_OVERLOAD(operator <<, __gmp_binary_lshift);
-CMPXX_DEFINE_BINARY_UI_OVERLOAD(operator >>, __gmp_binary_rshift);
-CMPXX_DEFINE_BOOLEAN_OVERLOAD(operator <, __gmp_binary_less);
-CMPXX_DEFINE_BOOLEAN_OVERLOAD(operator >, __gmp_binary_greater);
-CMPXX_DEFINE_BOOLEAN_OVERLOAD(operator <=, __gmp_binary_less_equal);
-CMPXX_DEFINE_BOOLEAN_OVERLOAD(operator >=, __gmp_binary_greater_equal);
-CMPXX_DEFINE_BOOLEAN_OVERLOAD(operator ==, __gmp_binary_equal);
-CMPXX_DEFINE_BOOLEAN_OVERLOAD(operator !=, __gmp_binary_not_equal);
-CMPXX_DEFINE_UNARY_OVERLOAD(abs, __gmp_abs_function)
-CMPXX_DEFINE_UNARY_OVERLOAD(trunc, __gmp_trunc_function)
-CMPXX_DEFINE_UNARY_OVERLOAD(floor, __gmp_floor_function)
-CMPXX_DEFINE_UNARY_OVERLOAD(ceil, __gmp_ceil_function)
-CMPXX_DEFINE_UNARY_OVERLOAD(sqrt, __gmp_sqrt_function)
+CMPXX_MP_WRAPPER_DEFINE_UNARY_OVERLOAD(operator +, __gmp_unary_plus);
+CMPXX_MP_WRAPPER_DEFINE_UNARY_OVERLOAD(operator -, __gmp_unary_minus);
+CMPXX_MP_WRAPPER_DEFINE_UNARY_OVERLOAD(operator ~, __gmp_unary_com);
+CMPXX_MP_WRAPPER_DEFINE_OVERLOAD(operator +, __gmp_binary_plus);
+CMPXX_MP_WRAPPER_DEFINE_OVERLOAD(operator -, __gmp_binary_minus);
+CMPXX_MP_WRAPPER_DEFINE_OVERLOAD(operator *, __gmp_binary_multiplies);
+CMPXX_MP_WRAPPER_DEFINE_OVERLOAD(operator /, __gmp_binary_divides);
+CMPXX_MP_WRAPPER_DEFINE_OVERLOAD(operator %, __gmp_binary_modulus);
+CMPXX_MP_WRAPPER_DEFINE_OVERLOAD(operator &, __gmp_binary_and);
+CMPXX_MP_WRAPPER_DEFINE_OVERLOAD(operator |, __gmp_binary_ior);
+CMPXX_MP_WRAPPER_DEFINE_OVERLOAD(operator ^, __gmp_binary_xor);
+CMPXX_MP_WRAPPER_DEFINE_BINARY_UI_OVERLOAD(operator <<, __gmp_binary_lshift);
+CMPXX_MP_WRAPPER_DEFINE_BINARY_UI_OVERLOAD(operator >>, __gmp_binary_rshift);
+CMPXX_MP_WRAPPER_DEFINE_BOOLEAN_OVERLOAD(operator <, __gmp_binary_less);
+CMPXX_MP_WRAPPER_DEFINE_BOOLEAN_OVERLOAD(operator >, __gmp_binary_greater);
+CMPXX_MP_WRAPPER_DEFINE_BOOLEAN_OVERLOAD(operator <=, __gmp_binary_less_equal);
+CMPXX_MP_WRAPPER_DEFINE_BOOLEAN_OVERLOAD(operator >=, __gmp_binary_greater_equal);
+CMPXX_MP_WRAPPER_DEFINE_BOOLEAN_OVERLOAD(operator ==, __gmp_binary_equal);
+CMPXX_MP_WRAPPER_DEFINE_BOOLEAN_OVERLOAD(operator !=, __gmp_binary_not_equal);
+CMPXX_MP_WRAPPER_DEFINE_UNARY_OVERLOAD(abs, __gmp_abs_function)
+CMPXX_MP_WRAPPER_DEFINE_UNARY_OVERLOAD(trunc, __gmp_trunc_function)
+CMPXX_MP_WRAPPER_DEFINE_UNARY_OVERLOAD(floor, __gmp_floor_function)
+CMPXX_MP_WRAPPER_DEFINE_UNARY_OVERLOAD(ceil, __gmp_ceil_function)
+CMPXX_MP_WRAPPER_DEFINE_UNARY_OVERLOAD(sqrt, __gmp_sqrt_function)
 
 namespace cmpxx{
     typedef aux::mp_wrapper<mpz_class> integer;
@@ -477,24 +477,31 @@ namespace cmpxx{
             }
 
             inline static mp_float add(const mp_float &lhs, const mp_float &rhs){
+                mp_float r;
+                add(r, lhs, rhs);
+                return r;
+            }
+
+            inline static mp_float &add(mp_float &r, const mp_float &lhs, const mp_float &rhs){
                 int lhs_sign = sgn(lhs.frac_.get_raw_value()), rhs_sign = sgn(rhs.frac_.get_raw_value());
+                mpz_abs(r.frac_.get_raw_value().get_mpz_t(), r.frac_.get_raw_value().get_mpz_t());
                 if(lhs_sign == rhs_sign){
                     if(lhs.exp_ >= rhs.exp_){
-                        mp_float r(add_impl(lhs, rhs));
+                        add_impl(r, lhs, rhs);
                         r.set_sign(lhs_sign);
                         return r;
                     }else{
-                        mp_float r(add_impl(rhs, lhs));
+                        add_impl(r, rhs, lhs);
                         r.set_sign(lhs_sign);
                         return r;
                     }
                 }else{
                     if(lhs >= rhs){
-                        mp_float r(sub_impl(lhs, rhs));
+                        sub_impl(r, lhs, rhs);
                         r.set_sign(lhs_sign);
                         return r;
                     }else{
-                        mp_float r(sub_impl(rhs, lhs));
+                        sub_impl(r, rhs, lhs);
                         r.set_sign(rhs_sign);
                         return r;
                     }
@@ -502,24 +509,31 @@ namespace cmpxx{
             }
 
             inline static mp_float sub(const mp_float &lhs, const mp_float &rhs){
+                mp_float r;
+                sub(r, lhs, rhs);
+                return r;
+            }
+
+            inline static mp_float &sub(mp_float &r, const mp_float &lhs, const mp_float &rhs){
                 int lhs_sign = lhs.sign(), rhs_sign = rhs.sign();
+                mpz_abs(r.frac_.get_raw_value().get_mpz_t(), r.frac_.get_raw_value().get_mpz_t());
                 if(lhs_sign == rhs_sign){
                     if(lhs >= rhs){
-                        mp_float r(sub_impl(lhs, rhs));
+                        sub_impl(r, lhs, rhs);
                         r.set_sign(lhs_sign);
                         return r;
                     }else{
-                        mp_float r(sub_impl(rhs, lhs));
+                        sub_impl(r, rhs, lhs);
                         r.set_sign(rhs_sign);
                         return r;
                     }
                 }else{
                     if(lhs.exp_ >= rhs.exp_){
-                        mp_float r(add_impl(lhs, rhs));
+                        add_impl(r, lhs, rhs);
                         r.set_sign(lhs_sign);
                         return r;
                     }else{
-                        mp_float r(add_impl(rhs, lhs));
+                        add_impl(r, rhs, lhs);
                         r.set_sign(lhs_sign);
                         return r;
                     }
@@ -581,9 +595,8 @@ namespace cmpxx{
             }
 
         private:
-            inline static mp_float add_impl(const mp_float &lhs, const mp_float &rhs){
+            inline static mp_float &add_impl(mp_float &r, const mp_float &lhs, const mp_float &rhs){
                 const std::size_t p = lhs.prec(), q = rhs.prec();
-                mp_float r;
                 r.exp_ = lhs.exp_;
                 int exp_diff = lhs.exp_ - rhs.exp_;
                 if(exp_diff >= static_cast<int>(p + 2)){
@@ -603,9 +616,8 @@ namespace cmpxx{
                 return r;
             }
 
-            inline static mp_float sub_impl(const mp_float &lhs, const mp_float &rhs){
+            inline static mp_float &sub_impl(mp_float &r, const mp_float &lhs, const mp_float &rhs){
                 const std::size_t p = lhs.prec(), q = rhs.prec();
-                mp_float r;
                 r.exp_ = lhs.exp_;
                 int exp_diff = lhs.exp_ - rhs.exp_;
                 if(exp_diff >= static_cast<int>(p + 2)){
@@ -755,11 +767,9 @@ namespace cmpxx{
 
 int main(){
     cmpxx::mp_float::set_global_prec(4);
-     // cmpxx::mp_float f = 4294967295.0 + 1.0 / 2.0 + 1.0 / 8.0 + 1.0 / 16.0;
-    cmpxx::mp_float f = 0.0000001;
+     cmpxx::mp_float f = 4294967295.0 + 1.0 / 2.0 + 1.0 / 8.0 + 1.0 / 16.0;
     std::cout << "f : " << f.frac().get_raw_value().get_str(16) << "\n";
-    // cmpxx::mp_float g = 1.0;
-    cmpxx::mp_float g = 0.9999999;
+    cmpxx::mp_float g = 1.0;
     std::cout << "g : " << g.frac().get_raw_value().get_str(16) << "\n";
     cmpxx::mp_float h;
     h = cmpxx::mp_float::add(f, g);
