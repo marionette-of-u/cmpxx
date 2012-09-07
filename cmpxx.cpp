@@ -359,7 +359,7 @@ namespace cmpxx{
             static const std::size_t
                 digits = std::numeric_limits<Type>::digits,
                 mask = digits - 1,
-                rightmost_zero_seq_num = calc_rightmost_zero_seq_num<digits>::value;
+                rightmost_zero_seq_num = calc_rightmost_zero_seq_num<digits>::value - 1;
         };
 
         template<class Type>
@@ -367,6 +367,7 @@ namespace cmpxx{
         public:
             typedef Type type;
             typedef mp_info<mp_limb_t> mp_info_type;
+            static const std::size_t default_prec = 4;
 
             inline mp_float() : exp_(), frac_(){}
 
@@ -445,6 +446,7 @@ namespace cmpxx{
                     if(n == 0){ return x; }
                     --n;
                 }while(z->_mp_d[p - e - n] == 0);
+                if(n == 0){ return x; }
                 mpz_realloc2(w, n * digits);
                 w->_mp_size = w->_mp_alloc;
                 mpn_copyi(w->_mp_d, z->_mp_d + p - e - n, n);
@@ -472,7 +474,7 @@ namespace cmpxx{
             }
 
             inline static void set_global_prec(std::size_t value){
-                if(value < 2){ value = 2; }
+                if(value < default_prec){ value = default_prec; }
                 prec_impl() = value;
             }
 
@@ -488,21 +490,21 @@ namespace cmpxx{
                 if(lhs_sign == rhs_sign){
                     if(lhs.exp_ >= rhs.exp_){
                         add_impl(r, lhs, rhs);
-                        r.set_sign(lhs_sign);
+                        r.mul_sign(lhs_sign);
                         return r;
                     }else{
                         add_impl(r, rhs, lhs);
-                        r.set_sign(lhs_sign);
+                        r.mul_sign(lhs_sign);
                         return r;
                     }
                 }else{
                     if(lhs >= rhs){
                         sub_impl(r, lhs, rhs);
-                        r.set_sign(lhs_sign);
+                        r.mul_sign(lhs_sign);
                         return r;
                     }else{
                         sub_impl(r, rhs, lhs);
-                        r.set_sign(rhs_sign);
+                        r.mul_sign(rhs_sign);
                         return r;
                     }
                 }
@@ -520,24 +522,78 @@ namespace cmpxx{
                 if(lhs_sign == rhs_sign){
                     if(lhs >= rhs){
                         sub_impl(r, lhs, rhs);
-                        r.set_sign(lhs_sign);
+                        r.mul_sign(lhs_sign);
                         return r;
                     }else{
                         sub_impl(r, rhs, lhs);
-                        r.set_sign(rhs_sign);
+                        r.mul_sign(rhs_sign);
                         return r;
                     }
                 }else{
                     if(lhs.exp_ >= rhs.exp_){
                         add_impl(r, lhs, rhs);
-                        r.set_sign(lhs_sign);
+                        r.mul_sign(lhs_sign);
                         return r;
                     }else{
                         add_impl(r, rhs, lhs);
-                        r.set_sign(lhs_sign);
+                        r.mul_sign(lhs_sign);
                         return r;
                     }
                 }
+            }
+
+            inline static mp_float mul(const mp_float &lhs, const mp_float &rhs){
+                mp_float r;
+                mul(r, lhs, rhs);
+                return r;
+            }
+
+            inline static mp_float &mul(mp_float &r, const mp_float &lhs, const mp_float &rhs){
+                const std::size_t p = lhs.prec(), q = rhs.prec();
+                std::size_t o;
+                r.exp_ = lhs.exp_ + rhs.exp_;
+                if(p == q){
+                    r.frac_ = lhs.frac_ * rhs.frac_;
+                    o = p;
+                }else if(p > q){
+                    r.frac_ = lhs.frac_ * (rhs.frac_ << (mp_info_type::digits * (p - q)));
+                    o = p;
+                }else /* if(p < q) */{
+                    r.frac_ = (lhs.frac_ << (mp_info_type::digits * (q - p))) * rhs.frac_;
+                    o = q;
+                }
+                mpz_ptr z = r.frac_.get_raw_value().get_mpz_t();
+                mp_limb_t *data = z->_mp_d;
+                r.frac_ += ~data[0] + 1;
+                data = z->_mp_d;
+                mpn_copyi(data, data + o, o);
+                z->_mp_size = o;
+                r.normalize(o);
+                return r;
+            }
+
+            inline static mp_float div(const mp_float &lhs, const mp_float &rhs){
+                mp_float r;
+                div(r, lhs, rhs);
+                return r;
+            }
+
+            inline static mp_float &div(mp_float &r, const mp_float &lhs, const mp_float &rhs){
+                const std::size_t p = lhs.prec(), q = rhs.prec();
+                std::size_t o;
+                r.exp_ = lhs.exp_ - rhs.exp_ + 1;
+                if(p == q){
+                    o = p;
+                    r.frac_ = ((lhs.frac_ << (mp_info_type::digits * o)) / rhs.frac_) >> mp_info_type::digits;
+                }else if(p > q){
+                    o = p;
+                    r.frac_ = ((lhs.frac_ << (mp_info_type::digits * o)) / (rhs.frac_ << (mp_info_type::digits * (p - q)))) >> mp_info_type::digits;
+                }else /* if(p < q) */{
+                    o = q;
+                    r.frac_ = ((lhs.frac_ << (mp_info_type::digits * (o + (q - p)))) / rhs.frac_) >> mp_info_type::digits;
+                }
+                r.normalize(o);
+                return r;
             }
 
             inline static bool qeual(const mp_float &lhs, const mp_float &rhs){
@@ -634,6 +690,7 @@ namespace cmpxx{
                     r.frac_ = (lhs.frac_ << ((q - p) * mp_info_type::digits)) - (rhs.frac_ >> (exp_diff * mp_info_type::digits));
                     r.normalize(q);
                 }
+                std::cout << r.frac_.get_raw_value().get_str() << "\n";
                 return r;
             }
 
@@ -669,10 +726,10 @@ namespace cmpxx{
                 // n5
                 n5:;
                 {
-                    mp_limb_t *data = frac_.get_raw_value().get_mpz_t()->_mp_d, u = data[0];
+                    mp_limb_t u = frac_.get_raw_value().get_mpz_t()->_mp_d[0];
                     if(u != 0){
                         frac_ += ~u + 1;
-                        if(data[p - 1] == 1){ goto n4; }
+                        if(frac_.get_raw_value().get_mpz_t()->_mp_d[p - 1] == 1){ goto n4; }
                     }
                 }
             }
@@ -688,9 +745,10 @@ namespace cmpxx{
                 if(x < 0.0){ x = -x; }
                 std::size_t p = get_global_prec();
                 mpz_ptr z = frac_.get_raw_value().get_mpz_t();
-                Float x_frac;
+                Float x_frac, x_integer, x_mod;
                 int x_exp;
                 x_frac = std::frexp(x, &x_exp);
+                x_mod = std::modf(x, &x_integer);
                 if(x_exp >= 0){
                     exp_ = x_exp / digits;
                     if(x_exp % digits != 0){ ++exp_; }
@@ -700,32 +758,29 @@ namespace cmpxx{
                     if(x_exp % digits != 0){ ++exp_; }
                     exp_ *= -1;
                 }
-                Float frac_bit = 0.5;
                 mpz_realloc2(z, p * digits);
                 mpn_zero(z->_mp_d, p);
                 z->_mp_size = z->_mp_alloc;
                 mp_limb_t *data = z->_mp_d;
-                std::size_t n = p - exp_;
+                std::size_t n = exp_ > 0 ? p - exp_ : p;
                 for(
                     std::size_t bit_counter = 0;
-                    (bit_counter >> shift) < p && bit_counter < static_cast<std::size_t>(x_exp) && x_frac > 0 && frac_bit > 0;
-                    ++bit_counter, frac_bit /= 2.0
+                    (bit_counter >> shift) < p && x_integer >= 1.0;
+                    ++bit_counter, x_integer /= 2.0
                 ){
-                    if(x_frac >= frac_bit){
-                        data[p - 1 - (bit_counter >> shift)] |= 1 << (bit_counter & mask);
-                        x_frac -= frac_bit;
+                    if(std::fmod(x_integer, 2.0) >= 1.0){
+                        data[n + (bit_counter >> shift)] |= 1 << (bit_counter & mask);
                     }
                 }
-                if(n <= p){
-                    for(
-                        std::size_t bit_counter = 0;
-                        (bit_counter >> shift) < p && x_frac > 0 && frac_bit > 0;
-                        ++bit_counter, frac_bit /= 2.0
-                    ){
-                        if(x_frac >= frac_bit){
-                            data[n - 1 - (bit_counter >> shift)] |= 1 << (digits - 1 - (bit_counter & mask));
-                            x_frac -= frac_bit;
-                        }
+                Float frac_bit = 0.5;
+                for(
+                    std::size_t bit_counter = 0;
+                    (bit_counter >> shift) < p && x_frac > 0.0 && frac_bit > 0.0;
+                    ++bit_counter, frac_bit /= 2.0
+                ){
+                    if(x_mod >= frac_bit){
+                        data[n - 1 - (bit_counter >> shift)] |= 1 << (digits - 1 - (bit_counter & mask));
+                        x_mod -= frac_bit;
                     }
                 }
                 if(!sign){ z->_mp_size *= -1; }
@@ -743,12 +798,27 @@ namespace cmpxx{
                 );
             }
 
-            inline void set_sign(int s){
+            inline void mul_sign(int s){
                 frac_.get_raw_value().get_mpz_t()->_mp_size *= s;
             }
 
+            inline void set_sign(int s){
+                int a = frac_.get_raw_value().get_mpz_t()->_mp_size;
+                a = std::abs(a);
+                a *= s;
+                frac_.get_raw_value().get_mpz_t()->_mp_size = a;
+            }
+
+            inline std::size_t frac_digits() const{
+                const mp_limb_t *a = frac_.get_raw_value().get_mpz_t()->_mp_d;
+                if(frac_ == 0){ return 0; }
+                std::size_t n = 0;
+                while(a[n] == 0){ ++n; }
+                return prec() - n;
+            }
+
             inline static std::size_t &prec_impl(){
-                static std::size_t value = 2;
+                static std::size_t value = default_prec;
                 return value;
             }
 
@@ -766,15 +836,14 @@ namespace cmpxx{
 #include <iostream>
 
 int main(){
-    cmpxx::mp_float::set_global_prec(4);
-     cmpxx::mp_float f = 4294967295.0 + 1.0 / 2.0 + 1.0 / 8.0 + 1.0 / 16.0;
-    std::cout << "f : " << f.frac().get_raw_value().get_str(16) << "\n";
-    cmpxx::mp_float g = 1.0;
-    std::cout << "g : " << g.frac().get_raw_value().get_str(16) << "\n";
-    cmpxx::mp_float h;
-    h = cmpxx::mp_float::add(f, g);
-    std::cout << h.integer_portion().get_raw_value().get_str(16) << "\n";
-    std::cout << h.frac_portion().frac().get_raw_value().get_str(16) << "\n";
+    cmpxx::mp_float lhs = 1.0;
+    std::cout << "lhs : " << lhs.frac().get_raw_value().get_str(16) << "\n";
+    cmpxx::mp_float rhs = 8.0;
+    std::cout << "rhs : " << rhs.frac().get_raw_value().get_str(16) << "\n";
+    cmpxx::mp_float r;
+    r = cmpxx::mp_float::div(lhs, rhs);
+    std::cout << r.integer_portion().get_raw_value().get_str(16) << "\n";
+    std::cout << r.frac_portion().frac().get_raw_value().get_str(16) << "\n";
 
     return 0;
 }
