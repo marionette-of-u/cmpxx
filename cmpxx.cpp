@@ -356,7 +356,7 @@ int main(){
         g *= f;
     }
     mp_exp_t e = 0;
-    std::cout << g.get_raw_value().get_str(e);
+    std::cout << "0."<< g.get_raw_value().get_str(e);
     std::cout << "x10^" << (e - 1) << "\n";
 
     return 0;
