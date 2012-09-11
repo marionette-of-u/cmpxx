@@ -1,9 +1,9 @@
 #include <memory>
 #include <utility>
 #include <limits>
+#include <sstream>
 #include <cmath>
 #include <cstdlib>
-#include <cassert>
 #include <gmpxx.h>
 
 namespace cmpxx{
@@ -183,6 +183,12 @@ namespace cmpxx{
 
             mp_type value_;
         };
+
+        template<class MPClass>
+        std::ostream &operator <<(std::ostream &ostream, const mp_wrapper<MPClass> &value){
+            ostream << value.get_raw_value().get_str();
+            return ostream;
+        }
     }
 }
 
@@ -335,11 +341,11 @@ CMPXX_MP_WRAPPER_DEFINE_BOOLEAN_OVERLOAD(operator <=, __gmp_binary_less_equal);
 CMPXX_MP_WRAPPER_DEFINE_BOOLEAN_OVERLOAD(operator >=, __gmp_binary_greater_equal);
 CMPXX_MP_WRAPPER_DEFINE_BOOLEAN_OVERLOAD(operator ==, __gmp_binary_equal);
 CMPXX_MP_WRAPPER_DEFINE_BOOLEAN_OVERLOAD(operator !=, __gmp_binary_not_equal);
-CMPXX_MP_WRAPPER_DEFINE_UNARY_OVERLOAD(abs, __gmp_abs_function)
-CMPXX_MP_WRAPPER_DEFINE_UNARY_OVERLOAD(trunc, __gmp_trunc_function)
-CMPXX_MP_WRAPPER_DEFINE_UNARY_OVERLOAD(floor, __gmp_floor_function)
-CMPXX_MP_WRAPPER_DEFINE_UNARY_OVERLOAD(ceil, __gmp_ceil_function)
-CMPXX_MP_WRAPPER_DEFINE_UNARY_OVERLOAD(sqrt, __gmp_sqrt_function)
+CMPXX_MP_WRAPPER_DEFINE_UNARY_OVERLOAD(abs, __gmp_abs_function);
+CMPXX_MP_WRAPPER_DEFINE_UNARY_OVERLOAD(trunc, __gmp_trunc_function);
+CMPXX_MP_WRAPPER_DEFINE_UNARY_OVERLOAD(floor, __gmp_floor_function);
+CMPXX_MP_WRAPPER_DEFINE_UNARY_OVERLOAD(ceil, __gmp_ceil_function);
+CMPXX_MP_WRAPPER_DEFINE_UNARY_OVERLOAD(sqrt, __gmp_sqrt_function);
 
 namespace cmpxx{
     typedef aux::mp_wrapper<mpz_class> integer;
@@ -347,17 +353,333 @@ namespace cmpxx{
     typedef aux::mp_wrapper<mpf_class> floating;
 }
 
+#include <utility>
+#include <map>
+#include <algorithm>
+#include <iterator>
+
+namespace cmpxx{
+    template<class Order, class Coefficient, bool CommutativeRing, class Alloc = std::allocator<int>>
+    class polynomial{
+    private:
+        typedef std::map<
+            Order,
+            Coefficient,
+            std::less<Order>,
+            typename Alloc::template rebind<
+                std::pair<const Order, Coefficient>
+            >::other
+        > basic_ordered_container;
+
+    public:
+        typedef typename basic_ordered_container::key_type order;
+        typedef typename basic_ordered_container::mapped_type coefficient;
+        static const bool commutative_ring = CommutativeRing;
+
+        class ordered_container : public basic_ordered_container{
+        public:
+            typedef basic_ordered_container base_type;
+            typedef std::pair<const order&, const coefficient&> ref_value_type;
+
+            inline ordered_container() : basic_ordered_container(){}
+
+            template<class Iter>
+            inline ordered_container(const Iter &first, const Iter &last) :
+                basic_ordered_container(first, last)
+            {}
+
+            inline typename base_type::iterator assign(const ref_value_type &v){
+                typename base_type::iterator iter;
+                if(v.second == 0){
+                    iter = base_type::find(v.first);
+                    if(iter != base_type::end()){
+                        base_type::erase(static_cast<typename base_type::const_iterator>(iter));
+                    }
+                    return base_type::end();
+                }
+                iter = base_type::find(v.first);
+                if(iter != base_type::end()){
+                    iter->second = v.second;
+                }else{
+                    base_type::insert(iter, std::make_pair(v.first, v.second));
+                }
+                return iter;
+            }
+
+            inline typename base_type::iterator add(const ref_value_type &v){
+                std::pair<typename base_type::iterator, bool> result = base_type::insert(v);
+                coefficient &coe(result.first->second);
+                if(!result.second){
+                    coe += v.second;
+                }
+                if(coe == 0){
+                    base_type::erase(static_cast<typename base_type::const_iterator>(result.first));
+                    return base_type::end();
+                }else{
+                    return result.first;
+                }
+            }
+
+            inline typename base_type::iterator sub(const ref_value_type &v){
+                std::pair<typename base_type::iterator, bool> result = base_type::insert(v);
+                coefficient &coe(result.first->second);
+                if(result.second){
+                    result.first->second *= -1;
+                }else{
+                    coe -= v.second;
+                }
+                if(coe == 0){
+                    base_type::erase(static_cast<typename base_type::const_iterator>(result.first));
+                    return base_type::end();
+                }
+                return result.first;
+            }
+
+            inline typename base_type::iterator mul(const ref_value_type &v){
+                typename base_type::iterator iter = base_type::find(v.first);
+                if(iter == base_type::end()){
+                    return base_type::end();
+                }
+                coefficient &coe(iter->second);
+                coe *= v.second;
+                if(coe == 0){
+                    base_type::erase(static_cast<typename base_type::const_iterator>(iter));
+                    return base_type::end();
+                }
+                return iter;
+            }
+
+            inline typename base_type::iterator div(const ref_value_type &v){
+                typename base_type::iterator iter = base_type::find(v.first);
+                if(iter == base_type::end()){
+                    return base_type::end();
+                }
+                coefficient &coe(iter->second);
+                coe /= v.second;
+                if(coe == 0){
+                    base_type::erase(static_cast<typename base_type::const_iterator>(iter));
+                    return base_type::end();
+                }
+                return iter;
+            }
+        };
+
+    public:
+        inline polynomial() : container(){}
+       
+        inline polynomial(const polynomial &other) :
+            container(other.container)
+        {}
+
+        inline polynomial(polynomial &&other) :
+            container(other.container)
+        {}
+
+        inline polynomial(const coefficient &coe) :
+            container()
+        { if(coe != 0){ container.insert(ordered_container::value_type(0, coe)); } }
+
+    private:
+        inline polynomial(const ordered_container &container_) :
+            container(container_)
+        {}
+
+        inline polynomial(
+            const typename basic_ordered_container::const_iterator &first,
+            const typename basic_ordered_container::const_iterator last
+        ) : container(first, last)
+        {}
+
+    public:
+        inline ~polynomial(){}
+
+        inline const ordered_container &get_container() const{
+            return container;
+        }
+
+        inline polynomial &operator =(const polynomial &other){
+            container = other.container;
+            return *this;
+        }
+
+        inline polynomial &operator =(polynomial &&other){
+            swap_ordered_container(other);
+            return *this;
+        }
+
+    private:
+        class coefficient_proxy{
+        public:
+            inline coefficient_proxy(ordered_container *container_, const order &v) :
+                container(container_),
+                order_(v)
+            {}
+
+            inline coefficient_proxy(const coefficient_proxy &other) :
+                container(other.container),
+                order_(other.order_)
+            {}
+
+            inline coefficient_proxy(coefficient_proxy &&other) :
+                container(other.container),
+                order_(other.order_)
+            {}
+
+            inline const coefficient_proxy &operator =(const coefficient &v) const{
+                if(v == 0){
+                    typename ordered_container::const_iterator iter = container->find(order_);
+                    if(iter != container->end()){
+                        container->erase(iter);
+                    }
+                }else{
+                    container->assign(typename ordered_container::ref_value_type(order_, v));
+                }
+                return *this;
+            }
+
+            inline const coefficient_proxy &operator +=(const coefficient &v) const{
+                container->add(typename ordered_container::ref_value_type(order_, v));
+                return *this;
+            }
+
+            inline const coefficient_proxy &operator -=(const coefficient &v) const{
+                container->sub(typename ordered_container::ref_value_type(order_, v));
+                return *this;
+            }
+
+            inline const coefficient_proxy &operator *=(const coefficient &v) const{
+                container->mul(typename ordered_container::ref_value_type(order_, v));
+                return *this;
+            }
+
+            inline const coefficient_proxy &operator /=(const coefficient &v) const{
+                container->div(typename ordered_container::ref_value_type(order_, v));
+                return *this;
+            }
+
+            inline const coefficient_proxy &operator ()(const coefficient &v) const{
+                return operator =(v);
+            }
+
+            inline coefficient_proxy operator [](const order &v) const{
+                coefficient_proxy r(container, v);
+                return r;
+            }
+
+        private:
+            ordered_container *container;
+            const order &order_;
+        };
+
+    public:
+        inline coefficient_proxy operator [](const order &order_){
+            return coefficient_proxy(&container, order_);
+        }
+
+        template<class Variable>
+        inline std::string get_str(const Variable &v) const{
+            return get_str_impl<std::string, char, Variable, std::ostringstream>(v, '*', '^', '+', '-', '0', '(', ')');
+        }
+
+        inline std::string get_str() const{
+            return get_str("x");
+        }
+
+    private:
+        template<class Str, class Char, class Variable, class OStringStream>
+        inline Str get_str_impl(
+            const Variable &v,
+            Char mul,
+            Char pow,
+            Char pls,
+            Char min,
+            Char zero,
+            Char l_pare,
+            Char r_pare
+        ) const{
+            Str result;
+            if(container.empty()){
+                result += zero;
+                return result;
+            }
+            typename ordered_container::const_reverse_iterator first = container.rbegin();
+            for(typename ordered_container::const_reverse_iterator iter = container.rbegin(), end = container.rend(); iter != end; ++iter){
+                const order &order_(iter->first);
+                const coefficient &coe(iter->second);
+                if(coe == 0){ continue; }
+                if(first != iter && coe > 0){
+                    result += pls;
+                }
+                if(coe == 1){
+                    if(order_ == 0){
+                        OStringStream os;
+                        os << coe;
+                        result += os.str();
+                    }
+                }else if(coe == -1){
+                    if(order_ == 0){
+                        OStringStream os;
+                        os << coe;
+                        result += os.str();
+                    }else{
+                        result += min;
+                    }
+                }else if(coe > 0 || coe < 0){
+                    OStringStream os;
+                    os << coe;
+                    result += os.str();
+                }
+                if(order_ != 0){
+                    result += v;
+                    if(order_ != 1){
+                        result += pow;
+                        if(order_ < 0){ result += l_pare; }
+                        OStringStream os;
+                        os << order_;
+                        result += os.str();
+                        if(order_ < 0){ result += r_pare; }
+                    }
+                }
+            }
+            return result;
+        }
+
+        inline void swap_ordered_container(polynomial &other){
+            typedef typename std::aligned_storage<
+                sizeof(ordered_container),
+                std::alignment_of<ordered_container>::value
+            >::type pod_of_ordered_container_type;
+            std::swap(
+                *static_cast<pod_of_ordered_container_type*>(static_cast<void*>(&other.container)),
+                *static_cast<pod_of_ordered_container_type*>(static_cast<void*>(&container))
+            );
+            return *this;
+        }
+
+        ordered_container container;
+    };
+}
+
 // test
 #include <iostream>
 
 int main(){
-    cmpxx::floating f = 0.5, g = 1.0;
-    for(int i = 0; i < 32; ++i){
-        g *= f;
-    }
-    mp_exp_t e = 0;
-    std::cout << "0."<< g.get_raw_value().get_str(e);
-    std::cout << "x10^" << (e - 1) << "\n";
-
+    typedef cmpxx::polynomial<cmpxx::integer, cmpxx::integer, true> poly;
+    poly p;
+    // assign
+    p[10](1);
+    // add
+    p[0] += 10;
+    // div
+    p[0] /= 5;
+    // add
+    p[2] += 2;
+    // mul
+    p[2] *= 5;
+    // sub
+    p[5] -= 9;
+    // assign
+    p[6](1);
+    std::cout << p.get_str() << "\n";
     return 0;
 }

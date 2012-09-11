@@ -4,7 +4,6 @@
 が必要となります。  
 
 ## 動作確認
-* MSVC 10.0  
 * Clang 3.2
 
 ## cmpxx::integer
@@ -18,3 +17,6 @@ GNU MPのmpq_classと同じ働きをします。
 ## cmpxx::floating
 GNU MPのmpf_classと同じ働きをします。  
 右辺値参照が利用可能となっています。
+
+## cmpxx::polynomial
+一変数多項式です。  
