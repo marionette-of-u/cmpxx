@@ -6,6 +6,9 @@
 #include <cstdlib>
 #include <gmpxx.h>
 
+// debug
+#include <iostream>
+
 namespace cmpxx{
     namespace aux{
         template<class T>
@@ -83,7 +86,8 @@ namespace cmpxx{
                 inline mp_wrapper &operator =(type value){        \
                     get_raw_value() = value;                      \
                     return *this;                                 \
-                }
+                }                                                 \
+                inline mp_wrapper(type value) : value_(value){}
 
             CMPXX_MP_WRAPPER_DEFINE_ASSIGN_OPERATOR(signed char);
             CMPXX_MP_WRAPPER_DEFINE_ASSIGN_OPERATOR(unsigned char);
@@ -167,6 +171,21 @@ namespace cmpxx{
 
             inline mp_type &get_raw_value(){
                 return value_;
+            }
+
+            inline mp_wrapper ceil_pow2() const{
+                const std::size_t popcount = mpz_popcount(get_raw_value().get_mpz_t()), size = mpz_size(get_raw_value().get_mpz_t());
+                if(popcount <= 1){
+                    return *this;
+                }
+                mp_wrapper r(*this << 1);
+                mpn_zero(r.get_raw_value().get_mpz_t()->_mp_d, size - 1);
+                mp_limb_t x = r.get_raw_value().get_mpz_t()->_mp_d[size - 1];
+                for(std::size_t i = 1; i < GMP_LIMB_BITS; i <<= 1){
+                    x = x | (x >> i);
+                }
+                r.get_raw_value().get_mpz_t()->_mp_d[size - 1] = x - (x >> 1);
+                return r;
             }
 
         private:
@@ -479,6 +498,23 @@ namespace cmpxx{
             container()
         { if(coe != 0){ container.insert(ordered_container::value_type(0, coe)); } }
 
+        #define CMPXX_POLYNOMIAL_CTOR(type) \
+            inline polynomial(type value) : \
+                container()                 \
+            { if(value != 0){ container.insert(typename ordered_container::ref_value_type(0, coefficient(value))); } }
+
+        CMPXX_POLYNOMIAL_CTOR(signed char);
+        CMPXX_POLYNOMIAL_CTOR(unsigned char);
+        CMPXX_POLYNOMIAL_CTOR(signed int);
+        CMPXX_POLYNOMIAL_CTOR(unsigned int);
+        CMPXX_POLYNOMIAL_CTOR(signed short int);
+        CMPXX_POLYNOMIAL_CTOR(unsigned short int);
+        CMPXX_POLYNOMIAL_CTOR(signed long int);
+        CMPXX_POLYNOMIAL_CTOR(unsigned long int);
+        CMPXX_POLYNOMIAL_CTOR(float);
+        CMPXX_POLYNOMIAL_CTOR(double);
+        CMPXX_POLYNOMIAL_CTOR(long double);
+
     private:
         inline polynomial(const ordered_container &container_) :
             container(container_)
@@ -576,6 +612,39 @@ namespace cmpxx{
             return coefficient_proxy(&container, order_);
         }
 
+        inline polynomial &operator +=(const polynomial &rhs){
+            add_order_n(rhs, 0);
+            return *this;
+        }
+
+        inline polynomial operator +(const polynomial &rhs) const{
+            polynomial r(*this);
+            r += rhs;
+            return r;
+        }
+
+        inline polynomial &operator -=(const polynomial &rhs){
+            sub_iterator(rhs.container.begin(), rhs.container.end());
+            return *this;
+        }
+
+        inline polynomial operator -(const polynomial &rhs) const{
+            polynomial r(*this);
+            r -= rhs;
+            return r;
+        }
+
+        inline polynomial &operator *=(const polynomial &rhs){
+            *this = kar_mul_impl(*this, rhs);
+            return *this;
+        }
+
+        inline polynomial operator *(const polynomial &rhs) const{
+            polynomial r(*this);
+            r *= rhs;
+            return r;
+        }
+
         template<class Variable>
         inline std::string get_str(const Variable &v) const{
             return get_str_impl<std::string, char, Variable, std::ostringstream>(v, '*', '^', '+', '-', '0', '(', ')');
@@ -586,6 +655,134 @@ namespace cmpxx{
         }
 
     private:
+        void add_order_n(const polynomial &rhs, const order &n){
+            for(auto &rhs_value : rhs.container){
+                order o = rhs_value.first + n;
+                const coefficient &coe = rhs_value.second;
+                typename ordered_container::iterator iter = container.find(o);
+                if(iter == container.end()){
+                    container.insert(iter, typename ordered_container::ref_value_type(o, coe));
+                }else{
+                    coefficient &lhs_coe(iter->second);
+                    lhs_coe += coe;
+                    if(lhs_coe == 0){ container.erase(static_cast<typename ordered_container::const_iterator>(iter)); }
+                }
+            }
+        }
+
+        inline void sub_iterator(
+            const typename ordered_container::const_iterator &iter,
+            const typename ordered_container::const_iterator &end
+        ){ sub_iterator(iter, end, 0); }
+
+        void sub_iterator(
+            typename ordered_container::const_iterator rhs_iter,
+            typename ordered_container::const_iterator rhs_end,
+            const order &n
+        ){
+            for(; rhs_iter != rhs_end; ++rhs_iter){
+                order o = rhs_iter->first - n;
+                const coefficient &coe = rhs_iter->second;
+                typename ordered_container::iterator iter = container.find(o);
+                if(iter == container.end()){
+                    container.insert(typename ordered_container::ref_value_type(o, -coe));
+                }else{
+                    coefficient &lhs_coe(iter->second);
+                    lhs_coe -= coe;
+                    if(lhs_coe == 0){ container.erase(static_cast<typename ordered_container::const_iterator>(iter)); }
+                }
+            }
+        }
+
+        static polynomial kar_mul_impl(const polynomial &f, const polynomial &g, std::size_t nest = 0){
+            if(f.container.empty() || g.container.empty()){
+                return polynomial();
+            }
+            const order &order_f(f.container.rbegin()->first), &order_g(g.container.rbegin()->first);
+            order n = order_f > order_g ? order_f.ceil_pow2() : order_g.ceil_pow2();
+            if(n < 2){
+                return square_mul(f, g);
+            }
+            n >>= 1;
+            typename ordered_container::const_iterator
+                upper_bound_f = f.container.upper_bound(n),
+                upper_bound_g = g.container.upper_bound(n);
+            polynomial
+                f_0 = kar_mul_add_ffgg(f.container.begin(), upper_bound_f, 0),
+                g_0 = kar_mul_add_ffgg(g.container.begin(), upper_bound_g, 0),
+                f_1 = kar_mul_add_ffgg(upper_bound_f, f.container.end(), n),
+                g_1 = kar_mul_add_ffgg(upper_bound_g, g.container.end(), n),
+                ff = f_0 + f_1,
+                gg = g_0 + g_1,
+                fg_0 = kar_mul_impl(f_0, g_0, nest + 1),
+                fg_1 = kar_mul_impl(f_1, g_1, nest + 1),
+                ffgg = kar_mul_impl(ff, gg, nest + 1);
+            f_0 = 0, f_1 = 0;
+            g_0 = 0, g_1 = 0;
+            ff = 0, gg = 0;
+            ffgg -= fg_0, ffgg -= fg_1;
+            polynomial r;
+            r += fg_0;
+            ffgg.radix_shift(n);
+            r += ffgg;
+            n <<= 1;
+            fg_1.radix_shift(n);
+            r += fg_1;
+            return r;
+        }
+
+        inline static polynomial kar_mul_add_ffgg(
+            typename ordered_container::const_iterator first,
+            typename ordered_container::const_iterator last,
+            const order &n
+        ){
+            polynomial r;
+            for(; first != last; ++first){
+                r.container[first->first - n] = first->second;
+            }
+            return r;
+        }
+
+        inline static polynomial square_mul(const polynomial &lhs, const polynomial &rhs){
+            return square_mul_impl(lhs.container.begin(), lhs.container.end(), rhs.container.begin(), rhs.container.end());
+        }
+
+        inline static polynomial square_mul_impl(
+            const typename ordered_container::const_iterator &lhs_first,
+            const typename ordered_container::const_iterator &lhs_last,
+            const typename ordered_container::const_iterator &rhs_first,
+            const typename ordered_container::const_iterator &rhs_last
+        ){
+            polynomial r;
+            for(auto lhs_iter = lhs_first; lhs_iter != lhs_last; ++lhs_iter){
+                const order &lhs_order(lhs_iter->first);
+                const coefficient &lhs_coe(lhs_iter->second);
+                for(auto rhs_iter = rhs_first; rhs_iter != rhs_last; ++rhs_iter){
+                    const order &rhs_order(rhs_iter->first);
+                    const coefficient &rhs_coe(rhs_iter->second);
+                    r.add_order_coe(lhs_order + rhs_order, lhs_coe * rhs_coe);
+                }
+            }
+            return r;
+        }
+
+        inline void add_order_coe(const order &o, const coefficient &coe){
+            typename ordered_container::iterator iter = container.find(o);
+            if(iter == container.end()){
+                container.insert(typename ordered_container::ref_value_type(o, coe));
+            }else{
+                coefficient &lhs_coe(iter->second);
+                lhs_coe += coe;
+                if(lhs_coe == 0){ container.erase(static_cast<typename ordered_container::const_iterator>(iter)); }
+            }
+        }
+
+        inline void radix_shift(const order &n){
+            for(auto &t : container){
+                const_cast<order&>(t.first) += n;
+            }
+        }
+
         template<class Str, class Char, class Variable, class OStringStream>
         inline Str get_str_impl(
             const Variable &v,
@@ -645,15 +842,7 @@ namespace cmpxx{
         }
 
         inline void swap_ordered_container(polynomial &other){
-            typedef typename std::aligned_storage<
-                sizeof(ordered_container),
-                std::alignment_of<ordered_container>::value
-            >::type pod_of_ordered_container_type;
-            std::swap(
-                *static_cast<pod_of_ordered_container_type*>(static_cast<void*>(&other.container)),
-                *static_cast<pod_of_ordered_container_type*>(static_cast<void*>(&container))
-            );
-            return *this;
+            container.swap(other.container);
         }
 
         ordered_container container;
@@ -665,21 +854,11 @@ namespace cmpxx{
 
 int main(){
     typedef cmpxx::polynomial<cmpxx::integer, cmpxx::integer, true> poly;
-    poly p;
-    // assign
-    p[10](1);
-    // add
-    p[0] += 10;
-    // div
-    p[0] /= 5;
-    // add
-    p[2] += 2;
-    // mul
-    p[2] *= 5;
-    // sub
-    p[5] -= 9;
-    // assign
-    p[6](1);
-    std::cout << p.get_str() << "\n";
+    poly p, q;
+
+    p[10](1)[5](-9)[2](10)[0](8);
+    q[10](1)[8](2)[0](2);
+
+    std::cout << (p * q).get_str() << "\n";
     return 0;
 }

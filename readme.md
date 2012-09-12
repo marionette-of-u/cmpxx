@@ -1,7 +1,5 @@
 # 概要
-コンパイルにはGNU MP  
-（Unix Like System : http://gmplib.org , Windows : http://www.mpir.org ）  
-が必要となります。  
+コンパイルにはGNU MP http://gmplib.org が必要となります。
 
 ## 動作確認
 * Clang 3.2
