@@ -6,9 +6,6 @@
 #include <cstdlib>
 #include <gmpxx.h>
 
-// debug
-#include <iostream>
-
 namespace cmpxx{
     namespace aux{
         template<class T>
@@ -635,13 +632,60 @@ namespace cmpxx{
         }
 
         inline polynomial &operator *=(const polynomial &rhs){
-            *this = kar_mul_impl(*this, rhs);
+            // *this = kar_mul_impl(*this, rhs);
+            *this = square_mul(*this, rhs);
             return *this;
         }
 
         inline polynomial operator *(const polynomial &rhs) const{
             polynomial r(*this);
             r *= rhs;
+            return r;
+        }
+
+        inline polynomial operator /=(const polynomial &rhs){
+            polynomial rem;
+            *this = div(rem, *this, rhs);
+            return *this;
+        }
+
+        inline polynomial operator /(const polynomial &rhs) const{
+            polynomial r(*this);
+            r /= rhs;
+            return r;
+        }
+
+        inline polynomial operator %=(const polynomial &rhs){
+            polynomial rem;
+            div(rem, *this, rhs);
+            *this = std::move(rem);
+            return *this;
+        }
+
+        inline polynomial operator %(const polynomial &rhs) const{
+            polynomial rem;
+            div(rem, *this, rhs);
+            return rem;
+        }
+
+        static polynomial div(polynomial &rem, const polynomial &lhs, const polynomial &rhs){
+            polynomial r;
+            rem = lhs;
+            const auto &rhs_last_iter = rhs.container.rbegin();
+            const order &rhs_order = rhs_last_iter->first;
+            const coefficient &rhs_coe = rhs_last_iter->second;
+            while(!rem.container.empty()){
+                const auto &rem_last_iter = rem.container.rbegin();
+                const order &rem_order = rem_last_iter->first;
+                const coefficient &rem_coe = rem_last_iter->second;
+                if(rem_order >= rhs_order){
+                    order n = rem_order - rhs_order;
+                    coefficient q = rem_coe / rhs_coe;
+                    if(q == 0){ break; }
+                    rem.sub_n_q(rhs, n, q);
+                    r.add_order_coe(n, q);
+                }else{ break; }
+            }
             return r;
         }
 
@@ -694,7 +738,7 @@ namespace cmpxx{
             }
         }
 
-        static polynomial kar_mul_impl(const polynomial &f, const polynomial &g, std::size_t nest = 0){
+        static polynomial kar_mul_impl(const polynomial &f, const polynomial &g){
             if(f.container.empty() || g.container.empty()){
                 return polynomial();
             }
@@ -714,9 +758,9 @@ namespace cmpxx{
                 g_1 = kar_mul_add_ffgg(upper_bound_g, g.container.end(), n),
                 ff = f_0 + f_1,
                 gg = g_0 + g_1,
-                fg_0 = kar_mul_impl(f_0, g_0, nest + 1),
-                fg_1 = kar_mul_impl(f_1, g_1, nest + 1),
-                ffgg = kar_mul_impl(ff, gg, nest + 1);
+                fg_0 = kar_mul_impl(f_0, g_0),
+                fg_1 = kar_mul_impl(f_1, g_1),
+                ffgg = kar_mul_impl(ff, gg);
             f_0 = 0, f_1 = 0;
             g_0 = 0, g_1 = 0;
             ff = 0, gg = 0;
@@ -780,6 +824,25 @@ namespace cmpxx{
         inline void radix_shift(const order &n){
             for(auto &t : container){
                 const_cast<order&>(t.first) += n;
+            }
+        }
+
+        void sub_n_q(const polynomial &rhs, const order &n, const coefficient &q){
+            for(auto &rhs_iter : rhs.container){
+                const order o(rhs_iter.first);
+                order new_o = o;
+                new_o += n;
+                const coefficient &coe(rhs_iter.second);
+                coefficient new_coe = coe * q;
+                auto iter = container.find(new_o);
+                if(iter == container.end()){
+                    iter = container.add(typename ordered_container::ref_value_type(new_o, new_coe));
+                    if(iter != container.end()){ iter->second = -new_coe; }
+                }else{
+                    coefficient &lhs_coe = iter->second;
+                    lhs_coe -= new_coe;
+                    if(lhs_coe == 0){ container.erase(static_cast<typename ordered_container::const_iterator>(iter)); }
+                }
             }
         }
 
@@ -849,16 +912,105 @@ namespace cmpxx{
     };
 }
 
-// test
+// dynamic-compile
+
+#include <cstdlib>
+#include <string>
+#include <sstream>
+#include <fstream>
+#include <exception>
+#include <dlfcn.h>
+
+#ifdef _WIN32
+  #define CMPXX_EXPORT "extern \"C\" "
+  #define CMPXX_IMPORT "extern \"C\" "
+  #define CMPXX_DLEXT ".dll"
+#else
+  #define CMPXX_EXPORT ""
+  #define CMPXX_IMPORT ""
+  #define CMPXX_DLEXT ".so"
+#endif
+
+namespace cmpxx{
+    class ofile_error : public std::runtime_error{
+    public:
+        inline ofile_error(std::string str) : std::runtime_error(str){}
+    };
+
+    class compile_error : public std::runtime_error{
+    public:
+        inline compile_error(std::string str) : std::runtime_error(str){}
+    };
+
+    namespace aux{
+        template<class T>
+        inline std::string lexical_cast(const T &value){
+            std::string str;
+            std::stringstream sstream;
+            sstream << value;
+            sstream >> str;
+            return str;
+        }
+
+        void *compile(const std::string code){
+            static int count = 0;
+            std::string cpp_file_name, o_file_name, so_file_name, clang_command_line;
+            ++count;
+            std::string count_str = lexical_cast(count);
+            cpp_file_name = "cmpxx-temp-" + count_str + ".cpp";
+            o_file_name = "cmpxx-temp-" + count_str + ".o";
+            so_file_name = "cmpxx-temp-" + count_str + CMPXX_DLEXT;
+            {
+                std::ofstream ofile(cpp_file_name.c_str());
+                if(ofile.fail()){
+                    throw(ofile_error("cannot open file '" + cpp_file_name + "'."));
+                }
+                ofile << code;
+            }
+            int status;
+            clang_command_line = "clang++ -std=c++11 -c " + cpp_file_name;
+            status = std::system(clang_command_line.c_str());
+            if(status != 0){
+                throw(compile_error("compile failed. '" + clang_command_line + "'."));
+            }
+            clang_command_line = "clang++ -shared -o " + so_file_name + " " + o_file_name;
+            status = std::system(clang_command_line.c_str());
+            if(status != 0){
+                throw(compile_error("compile failed. '" + clang_command_line + "'."));
+            }
+            void *handle = dlopen(so_file_name.c_str(), RTLD_LAZY);
+            if(!handle){
+                throw(compile_error("dlopen failed. '" + so_file_name + "'."));
+            }
+            return handle;
+        }
+    }
+}
+
 #include <iostream>
 
 int main(){
-    typedef cmpxx::polynomial<cmpxx::integer, cmpxx::integer, true> poly;
+    //try{
+    //    void *handle = cmpxx::aux::compile(std::string(CMPXX_IMPORT) + "int add(int x, int y){ return x + y; }");
+    //    typedef int (*func_type)(int x, int y);
+    //    func_type func = nullptr;
+    //    func = (func_type)dlsym(handle, "add");
+    //    std::cout << func(10, 20) << std::endl;
+    //}catch(std::runtime_error e){
+    //    std::cerr << e.what() << std::endl;
+    //}
+
+    typedef cmpxx::polynomial<cmpxx::integer, cmpxx::rational, true> poly;
     poly p, q;
 
-    p[10](1)[5](-9)[2](10)[0](8);
-    q[10](1)[8](2)[0](2);
+    p["111"]("222")["333"]("444");
+    q["555"]("666")["777"]("888")["999"]("101");
 
-    std::cout << (p * q).get_str() << "\n";
+    std::cout << "lhs : " << q.get_str() << "\n";
+    std::cout << "rhs : " << p.get_str() << "\n";
+    std::cout << (q / p).get_str() << "\n";
+    std::cout << (q % p).get_str() << "\n";
+
     return 0;
 }
+
