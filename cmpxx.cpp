@@ -668,6 +668,10 @@ namespace cmpxx{
             return rem;
         }
 
+        inline bool operator <(const polynomial &rhs) const{
+            return base_less_equal(false, rhs.container);
+        }
+
         static polynomial div(polynomial &rem, const polynomial &lhs, const polynomial &rhs){
             polynomial r;
             rem = lhs;
@@ -689,6 +693,14 @@ namespace cmpxx{
             return r;
         }
 
+        inline const order &deg() const{
+            return container.rbegin()->first;
+        }
+
+        inline const coefficient &lc() const{
+            return container.rbegin()->second;
+        }
+
         template<class Variable>
         inline std::string get_str(const Variable &v) const{
             return get_str_impl<std::string, char, Variable, std::ostringstream>(v, '*', '^', '+', '-', '0', '(', ')');
@@ -698,8 +710,40 @@ namespace cmpxx{
             return get_str("x");
         }
 
+        bool base_less_equal(bool final, const polynomial &rhs) const{
+            const ordered_container &rhs_container = rhs.container;
+            typename ordered_container::const_reverse_iterator
+                lhs_iter = container.rbegin(),
+                lhs_end = container.rend(),
+                rhs_iter = rhs_container.rbegin(),
+                rhs_end = rhs_container.rend();
+            bool end_l = lhs_iter == lhs_end, end_r = rhs_iter == rhs_end;
+            if(!end_l || !end_r){
+                if(end_l && !end_r){ return false; }
+                if(!end_l && end_r){ return true; }
+                for(; lhs_iter != lhs_end && rhs_iter != rhs_end; ++lhs_iter, ++rhs_iter){
+                    const order &lhs_order(lhs_iter->first), &rhs_order(rhs_iter->first);
+                    if(lhs_order == rhs_order){
+                        const coefficient &lhs_coe(lhs_iter->second), &rhs_coe(rhs_iter->second);
+                        if(lhs_coe < rhs_coe){
+                            return true;
+                        }else if(lhs_coe > rhs_coe){
+                            return false;
+                        }
+                    }else if(lhs_order < rhs_order){
+                        return true;
+                    }else{
+                        return false;
+                    }
+                }
+                if(lhs_iter == lhs_end && rhs_iter != rhs_end){ return false; }
+                if(lhs_iter != lhs_end && rhs_iter == rhs_end){ return true; }
+            }
+            return final;
+        }
+
     private:
-        void add_order_n(const polynomial &rhs, const order &n){
+        inline void add_order_n(const polynomial &rhs, const order &n){
             for(auto &rhs_value : rhs.container){
                 order o = rhs_value.first + n;
                 const coefficient &coe = rhs_value.second;
@@ -719,7 +763,7 @@ namespace cmpxx{
             const typename ordered_container::const_iterator &end
         ){ sub_iterator(iter, end, 0); }
 
-        void sub_iterator(
+        inline void sub_iterator(
             typename ordered_container::const_iterator rhs_iter,
             typename ordered_container::const_iterator rhs_end,
             const order &n
@@ -827,7 +871,7 @@ namespace cmpxx{
             }
         }
 
-        void sub_n_q(const polynomial &rhs, const order &n, const coefficient &q){
+        inline void sub_n_q(const polynomial &rhs, const order &n, const coefficient &q){
             for(auto &rhs_iter : rhs.container){
                 const order o(rhs_iter.first);
                 order new_o = o;
@@ -921,13 +965,12 @@ namespace cmpxx{
 #include <exception>
 #include <dlfcn.h>
 
+#define CMPXX_EXPORT "extern \"C\" "
+#define CMPXX_IMPORT "extern \"C\" "
+
 #ifdef _WIN32
-  #define CMPXX_EXPORT "extern \"C\" "
-  #define CMPXX_IMPORT "extern \"C\" "
   #define CMPXX_DLEXT ".dll"
 #else
-  #define CMPXX_EXPORT ""
-  #define CMPXX_IMPORT ""
   #define CMPXX_DLEXT ".so"
 #endif
 
@@ -959,7 +1002,7 @@ namespace cmpxx{
             std::string count_str = lexical_cast(count);
             cpp_file_name = "cmpxx-temp-" + count_str + ".cpp";
             o_file_name = "cmpxx-temp-" + count_str + ".o";
-            so_file_name = "cmpxx-temp-" + count_str + CMPXX_DLEXT;
+            so_file_name = "./cmpxx-temp-" + count_str + CMPXX_DLEXT;
             {
                 std::ofstream ofile(cpp_file_name.c_str());
                 if(ofile.fail()){
@@ -968,12 +1011,12 @@ namespace cmpxx{
                 ofile << code;
             }
             int status;
-            clang_command_line = "clang++ -std=c++11 -c " + cpp_file_name;
+            clang_command_line = "clang++ -std=c++11 -c -O2 " + cpp_file_name;
             status = std::system(clang_command_line.c_str());
             if(status != 0){
                 throw(compile_error("compile failed. '" + clang_command_line + "'."));
             }
-            clang_command_line = "clang++ -shared -o " + so_file_name + " " + o_file_name;
+            clang_command_line = "clang++ -shared -o " + so_file_name + " " + o_file_name + " -lgmpxx -lgmp";
             status = std::system(clang_command_line.c_str());
             if(status != 0){
                 throw(compile_error("compile failed. '" + clang_command_line + "'."));
@@ -989,17 +1032,19 @@ namespace cmpxx{
 
 #include <iostream>
 
-int main(){
-    //try{
-    //    void *handle = cmpxx::aux::compile(std::string(CMPXX_IMPORT) + "int add(int x, int y){ return x + y; }");
-    //    typedef int (*func_type)(int x, int y);
-    //    func_type func = nullptr;
-    //    func = (func_type)dlsym(handle, "add");
-    //    std::cout << func(10, 20) << std::endl;
-    //}catch(std::runtime_error e){
-    //    std::cerr << e.what() << std::endl;
-    //}
+void dynamic_link_test(){
+    try{
+        void *handle = cmpxx::aux::compile(std::string(CMPXX_IMPORT) + "int add(int x, int y){ return x + y; }");
+        typedef int (*func_type)(int x, int y);
+        func_type func = nullptr;
+        func = (func_type)dlsym(handle, "add");
+        std::cout << func(10, 20) << std::endl;
+    }catch(std::runtime_error e){
+        std::cerr << e.what() << std::endl;
+    }
+}
 
+void polynomial_test(){
     typedef cmpxx::polynomial<cmpxx::integer, cmpxx::rational, true> poly;
     poly p, q;
 
@@ -1010,6 +1055,14 @@ int main(){
     std::cout << "rhs : " << p.get_str() << "\n";
     std::cout << (q / p).get_str() << "\n";
     std::cout << (q % p).get_str() << "\n";
+
+    std::cout << (p < q) << "\n";
+    std::cout << (p < 3) << "\n";
+}
+
+int main(){
+    polynomial_test();
+    dynamic_link_test();
 
     return 0;
 }
