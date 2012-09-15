@@ -1,3 +1,35 @@
+// aux
+
+#define CMPXX_INVOKE_MACRO_WITH_BUILT_IN_TYPE(macro, op, e, r) \
+    macro(op, e, r, signed char);        \
+    macro(op, e, r, unsigned char);      \
+    macro(op, e, r, signed int);         \
+    macro(op, e, r, unsigned int);       \
+    macro(op, e, r, signed short int);   \
+    macro(op, e, r, unsigned short int); \
+    macro(op, e, r, signed long int);    \
+    macro(op, e, r, unsigned long int);  \
+    macro(op, e, r, float);              \
+    macro(op, e, r, double);             \
+    macro(op, e, r, long double);
+
+#define CMPXX_INVOKE_MACRO_WITH_S_U_D_LD(s, u, d, ld, op, e, r) \
+    s(op, e, r, signed char)        \
+    u(op, e, r, unsigned char)      \
+    s(op, e, r, signed int)         \
+    u(op, e, r, unsigned int)       \
+    s(op, e, r, signed short int)   \
+    u(op, e, r, unsigned short int) \
+    s(op, e, r, signed long int)    \
+    u(op, e, r, unsigned long int)  \
+    d(op, e, r, float)              \
+    d(op, e, r, double)             \
+    ld(op, e, r, long double)
+
+#define CMPXX_EMPTY_MACRO
+
+// integer/rational/floating/polynomial
+
 #include <memory>
 #include <utility>
 #include <limits>
@@ -79,29 +111,19 @@ namespace cmpxx{
                 return *this;
             }
 
-            #define CMPXX_MP_WRAPPER_DEFINE_ASSIGN_OPERATOR(type) \
-                inline mp_wrapper &operator =(type value){        \
-                    get_raw_value() = value;                      \
-                    return *this;                                 \
-                }                                                 \
+            #define CMPXX_MP_WRAPPER_DEFINE_ASSIGN_OPERATOR(op, e, r, type) \
+                inline mp_wrapper &operator =(type value){                  \
+                    get_raw_value() = value;                                \
+                    return *this;                                           \
+                }                                                           \
                 inline mp_wrapper(type value) : value_(value){}
 
-            CMPXX_MP_WRAPPER_DEFINE_ASSIGN_OPERATOR(signed char);
-            CMPXX_MP_WRAPPER_DEFINE_ASSIGN_OPERATOR(unsigned char);
-            CMPXX_MP_WRAPPER_DEFINE_ASSIGN_OPERATOR(signed int);
-            CMPXX_MP_WRAPPER_DEFINE_ASSIGN_OPERATOR(unsigned int);
-            CMPXX_MP_WRAPPER_DEFINE_ASSIGN_OPERATOR(signed short int);
-            CMPXX_MP_WRAPPER_DEFINE_ASSIGN_OPERATOR(unsigned short int);
-            CMPXX_MP_WRAPPER_DEFINE_ASSIGN_OPERATOR(signed long int);
-            CMPXX_MP_WRAPPER_DEFINE_ASSIGN_OPERATOR(unsigned long int);
-            CMPXX_MP_WRAPPER_DEFINE_ASSIGN_OPERATOR(float);
-            CMPXX_MP_WRAPPER_DEFINE_ASSIGN_OPERATOR(double);
-            CMPXX_MP_WRAPPER_DEFINE_ASSIGN_OPERATOR(long double);
+            CMPXX_INVOKE_MACRO_WITH_BUILT_IN_TYPE(CMPXX_MP_WRAPPER_DEFINE_ASSIGN_OPERATOR, CMPXX_EMPTY_MACRO, CMPXX_EMPTY_MACRO, CMPXX_EMPTY_MACRO);
 
-            #define CMPXX_MP_WRAPPER_DEFINE_COMPOUND_OPERATOR_IMPL(op, type) \
-                inline mp_wrapper &op(type value){                           \
-                    get_raw_value().op(value);                               \
-                    return *this;                                            \
+            #define CMPXX_MP_WRAPPER_DEFINE_COMPOUND_OPERATOR_IMPL(op, e, r, type) \
+                inline mp_wrapper &op(type value){                                 \
+                    get_raw_value().op(value);                                     \
+                    return *this;                                                  \
                 }
 
             #define CMPXX_MP_WRAPPER_DEFINE_COMPOUND_OPERATOR(op)            \
@@ -121,17 +143,7 @@ namespace cmpxx{
                     get_raw_value().op(raw_value);                           \
                     return *this;                                            \
                 }                                                            \
-                CMPXX_MP_WRAPPER_DEFINE_COMPOUND_OPERATOR_IMPL(op, signed char);        \
-                CMPXX_MP_WRAPPER_DEFINE_COMPOUND_OPERATOR_IMPL(op, unsigned char);      \
-                CMPXX_MP_WRAPPER_DEFINE_COMPOUND_OPERATOR_IMPL(op, signed int);         \
-                CMPXX_MP_WRAPPER_DEFINE_COMPOUND_OPERATOR_IMPL(op, unsigned int);       \
-                CMPXX_MP_WRAPPER_DEFINE_COMPOUND_OPERATOR_IMPL(op, signed short int);   \
-                CMPXX_MP_WRAPPER_DEFINE_COMPOUND_OPERATOR_IMPL(op, unsigned short int); \
-                CMPXX_MP_WRAPPER_DEFINE_COMPOUND_OPERATOR_IMPL(op, signed long int);    \
-                CMPXX_MP_WRAPPER_DEFINE_COMPOUND_OPERATOR_IMPL(op, unsigned long int);  \
-                CMPXX_MP_WRAPPER_DEFINE_COMPOUND_OPERATOR_IMPL(op, float);              \
-                CMPXX_MP_WRAPPER_DEFINE_COMPOUND_OPERATOR_IMPL(op, double);             \
-                CMPXX_MP_WRAPPER_DEFINE_COMPOUND_OPERATOR_IMPL(op, long double);
+                CMPXX_INVOKE_MACRO_WITH_BUILT_IN_TYPE(CMPXX_MP_WRAPPER_DEFINE_COMPOUND_OPERATOR_IMPL, op, CMPXX_EMPTY_MACRO, CMPXX_EMPTY_MACRO);
 
             #define CMPXX_MP_WRAPPER_DEFINE_COMPOUND_OPERATOR_UI(op) \
                 inline mp_wrapper &op(unsigned long int v){          \
@@ -254,30 +266,25 @@ namespace cmpxx{
         return op(l ,r.expr);                                                             \
     }
 
-#define CMPXX_MP_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL_S(op, e, t, r) \
-    CMPXX_MP_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL(op, e, t, signed long int, r)
+#define CMPXX_MP_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL_S(op, e, r, t) \
+    CMPXX_MP_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL(op, e, t, signed long int, r);
 
-#define CMPXX_MP_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL_U(op, e, t, r) \
-    CMPXX_MP_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL(op, e, t, unsigned long int, r)
+#define CMPXX_MP_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL_U(op, e, r, t) \
+    CMPXX_MP_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL(op, e, t, unsigned long int, r);
 
-#define CMPXX_MP_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL_D(op, e, t, r) \
-    CMPXX_MP_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL(op, e, t, double, r)
+#define CMPXX_MP_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL_D(op, e, r, t) \
+    CMPXX_MP_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL(op, e, t, double, r);
 
-#define CMPXX_MP_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL_LD(op, e, t, r) \
-    CMPXX_MP_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL(op, e, t, long double, r)
+#define CMPXX_MP_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL_LD(op, e, r, t) \
+    CMPXX_MP_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL(op, e, t, long double, r);
 
-#define CMPXX_MP_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD(op, e, r)                        \
-    CMPXX_MP_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL_S(op, e, signed char, r)        \
-    CMPXX_MP_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL_U(op, e, unsigned char, r)      \
-    CMPXX_MP_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL_S(op, e, signed int, r)         \
-    CMPXX_MP_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL_U(op, e, unsigned int, r)       \
-    CMPXX_MP_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL_S(op, e, signed short int, r)   \
-    CMPXX_MP_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL_U(op, e, unsigned short int, r) \
-    CMPXX_MP_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL_S(op, e, signed long int, r)    \
-    CMPXX_MP_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL_U(op, e, unsigned long int, r)  \
-    CMPXX_MP_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL_D(op, e, float, r)              \
-    CMPXX_MP_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL_D(op, e, double, r)             \
-    CMPXX_MP_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL_LD(op, e, long double, r)
+#define CMPXX_MP_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD(op, e, r) \
+    CMPXX_INVOKE_MACRO_WITH_S_U_D_LD(                            \
+        CMPXX_MP_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL_S,   \
+        CMPXX_MP_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL_U,   \
+        CMPXX_MP_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL_D,   \
+        CMPXX_MP_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL_LD,  \
+        op, e, r);
 
 #define CMPXX_MP_WRAPPER_DEFINE_EXPR_OVERLOAD(op, e, r_type) \
     template<class T, class U, class V, class W>             \
@@ -319,24 +326,26 @@ namespace cmpxx{
         op,                                                     \
         e,                                                      \
         CMPXX_MP_WRAPPER_DEFINE_OVERLOAD_RETURN_TYPE            \
-    )                                                           \
-    CMPXX_MP_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD(             \
+    );                                                          \
+    CMPXX_INVOKE_MACRO_WITH_S_U_D_LD(                           \
+        CMPXX_MP_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL_S,  \
+        CMPXX_MP_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL_U,  \
+        CMPXX_MP_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL_D,  \
+        CMPXX_MP_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL_LD, \
+        op, e, CMPXX_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD_RETURN_TYPE);
+
+#define CMPXX_MP_WRAPPER_DEFINE_BOOLEAN_OVERLOAD(op, e)         \
+    CMPXX_MP_WRAPPER_DEFINE_EXPR_OVERLOAD(                      \
         op,                                                     \
         e,                                                      \
-        CMPXX_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD_RETURN_TYPE \
-    )
-
-#define CMPXX_MP_WRAPPER_DEFINE_BOOLEAN_OVERLOAD(op, e)  \
-    CMPXX_MP_WRAPPER_DEFINE_EXPR_OVERLOAD(               \
-        op,                                              \
-        e,                                               \
-        CMPXX_WRAPPER_DEFINE_OVERLOAD_RETURN_TYPE_BOOL   \
-    )                                                    \
-    CMPXX_MP_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD(      \
-        op,                                              \
-        e,                                               \
-        CMPXX_WRAPPER_DEFINE_OVERLOAD_RETURN_TYPE_BOOL   \
-    )
+        CMPXX_WRAPPER_DEFINE_OVERLOAD_RETURN_TYPE_BOOL          \
+    );                                                          \
+    CMPXX_INVOKE_MACRO_WITH_S_U_D_LD(                           \
+        CMPXX_MP_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL_S,  \
+        CMPXX_MP_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL_U,  \
+        CMPXX_MP_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL_D,  \
+        CMPXX_MP_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL_LD, \
+        op, e, CMPXX_WRAPPER_DEFINE_OVERLOAD_RETURN_TYPE_BOOL);
 
 CMPXX_MP_WRAPPER_DEFINE_UNARY_OVERLOAD(operator +, __gmp_unary_plus);
 CMPXX_MP_WRAPPER_DEFINE_UNARY_OVERLOAD(operator -, __gmp_unary_minus);
@@ -495,22 +504,17 @@ namespace cmpxx{
             container()
         { if(coe != 0){ container.insert(ordered_container::value_type(0, coe)); } }
 
-        #define CMPXX_POLYNOMIAL_CTOR(type) \
-            inline polynomial(type value) : \
-                container()                 \
+        #define CMPXX_POLYNOMIAL_CTOR(op, e, r, type) \
+            inline polynomial(type value) :           \
+                container()                           \
             { if(value != 0){ container.insert(typename ordered_container::ref_value_type(0, coefficient(value))); } }
 
-        CMPXX_POLYNOMIAL_CTOR(signed char);
-        CMPXX_POLYNOMIAL_CTOR(unsigned char);
-        CMPXX_POLYNOMIAL_CTOR(signed int);
-        CMPXX_POLYNOMIAL_CTOR(unsigned int);
-        CMPXX_POLYNOMIAL_CTOR(signed short int);
-        CMPXX_POLYNOMIAL_CTOR(unsigned short int);
-        CMPXX_POLYNOMIAL_CTOR(signed long int);
-        CMPXX_POLYNOMIAL_CTOR(unsigned long int);
-        CMPXX_POLYNOMIAL_CTOR(float);
-        CMPXX_POLYNOMIAL_CTOR(double);
-        CMPXX_POLYNOMIAL_CTOR(long double);
+        CMPXX_INVOKE_MACRO_WITH_BUILT_IN_TYPE(
+            CMPXX_POLYNOMIAL_CTOR,
+            CMPXX_EMPTY_MACRO,
+            CMPXX_EMPTY_MACRO,
+            CMPXX_EMPTY_MACRO
+        );
 
     private:
         inline polynomial(const ordered_container &container_) :
@@ -614,21 +618,9 @@ namespace cmpxx{
             return *this;
         }
 
-        inline polynomial operator +(const polynomial &rhs) const{
-            polynomial r(*this);
-            r += rhs;
-            return r;
-        }
-
         inline polynomial &operator -=(const polynomial &rhs){
             sub_iterator(rhs.container.begin(), rhs.container.end());
             return *this;
-        }
-
-        inline polynomial operator -(const polynomial &rhs) const{
-            polynomial r(*this);
-            r -= rhs;
-            return r;
         }
 
         inline polynomial &operator *=(const polynomial &rhs){
@@ -637,22 +629,10 @@ namespace cmpxx{
             return *this;
         }
 
-        inline polynomial operator *(const polynomial &rhs) const{
-            polynomial r(*this);
-            r *= rhs;
-            return r;
-        }
-
         inline polynomial operator /=(const polynomial &rhs){
             polynomial rem;
             *this = div(rem, *this, rhs);
             return *this;
-        }
-
-        inline polynomial operator /(const polynomial &rhs) const{
-            polynomial r(*this);
-            r /= rhs;
-            return r;
         }
 
         inline polynomial operator %=(const polynomial &rhs){
@@ -660,16 +640,6 @@ namespace cmpxx{
             div(rem, *this, rhs);
             *this = std::move(rem);
             return *this;
-        }
-
-        inline polynomial operator %(const polynomial &rhs) const{
-            polynomial rem;
-            div(rem, *this, rhs);
-            return rem;
-        }
-
-        inline bool operator <(const polynomial &rhs) const{
-            return base_less_equal(false, rhs.container);
         }
 
         static polynomial div(polynomial &rem, const polynomial &lhs, const polynomial &rhs){
@@ -954,6 +924,72 @@ namespace cmpxx{
 
         ordered_container container;
     };
+
+    #define CMPXX_POLYNOMIAL_OPERATOR_OVERLOAD(op, a_op)                            \
+        template<class Order, class Coefficient, bool CommutativeRing, class Alloc> \
+        inline polynomial<Order, Coefficient, CommutativeRing, Alloc>               \
+        operator op(                                                                \
+            const polynomial<Order, Coefficient, CommutativeRing, Alloc> &l,        \
+            const polynomial<Order, Coefficient, CommutativeRing, Alloc> &r         \
+        ){                                                                          \
+            polynomial<Order, Coefficient, CommutativeRing, Alloc> ret(l);          \
+            ret a_op r;                                                             \
+            return ret;                                                             \
+        }                                                                           \
+        template<class Order, class Coefficient, bool CommutativeRing, class Alloc> \
+        inline polynomial<Order, Coefficient, CommutativeRing, Alloc>               \
+        operator op(                                                                \
+            const polynomial<Order, Coefficient, CommutativeRing, Alloc> &l,        \
+            const Coefficient &r                                                    \
+        ){                                                                          \
+            polynomial<Order, Coefficient, CommutativeRing, Alloc> ret(l);          \
+            ret a_op r;                                                             \
+            return ret;                                                             \
+        }                                                                           \
+        template<class Order, class Coefficient, bool CommutativeRing, class Alloc> \
+        inline polynomial<Order, Coefficient, CommutativeRing, Alloc>               \
+        operator op(                                                                \
+            const Coefficient &l,                                                   \
+            const polynomial<Order, Coefficient, CommutativeRing, Alloc> &r         \
+        ){                                                                          \
+            polynomial<Order, Coefficient, CommutativeRing, Alloc> ret(l);          \
+            ret a_op r;                                                             \
+            return ret;                                                             \
+        }
+
+    #define CMPXX_POLYNOMIAL_BUILT_IN_TYPE_OPERATOR_OVERLOAD(op, a_op, e, t)        \
+        template<class Order, class Coefficient, bool CommutativeRing, class Alloc> \
+        inline polynomial<Order, Coefficient, CommutativeRing, Alloc>               \
+        operator op(                                                                \
+            const polynomial<Order, Coefficient, CommutativeRing, Alloc> &l,        \
+            t v                                                                     \
+        ){                                                                          \
+            polynomial<Order, Coefficient, CommutativeRing, Alloc> ret(l);          \
+            ret a_op polynomial<Order, Coefficient, CommutativeRing, Alloc>(v);     \
+            return ret;                                                             \
+        }                                                                           \
+        template<class Order, class Coefficient, bool CommutativeRing, class Alloc> \
+        inline polynomial<Order, Coefficient, CommutativeRing, Alloc>               \
+        operator op(                                                                \
+            t v,                                                                    \
+            const polynomial<Order, Coefficient, CommutativeRing, Alloc> &r         \
+        ){                                                                          \
+            polynomial<Order, Coefficient, CommutativeRing, Alloc> ret(v);          \
+            ret a_op r;                                                             \
+            return ret;                                                             \
+        }
+
+    CMPXX_POLYNOMIAL_OPERATOR_OVERLOAD(+, +=);
+    CMPXX_POLYNOMIAL_OPERATOR_OVERLOAD(-, -=);
+    CMPXX_POLYNOMIAL_OPERATOR_OVERLOAD(*, *=);
+    CMPXX_POLYNOMIAL_OPERATOR_OVERLOAD(/, /=);
+    CMPXX_POLYNOMIAL_OPERATOR_OVERLOAD(%, %=);
+
+    CMPXX_INVOKE_MACRO_WITH_BUILT_IN_TYPE(CMPXX_POLYNOMIAL_BUILT_IN_TYPE_OPERATOR_OVERLOAD, +, +=, CMPXX_EMPTY_MACRO);
+    CMPXX_INVOKE_MACRO_WITH_BUILT_IN_TYPE(CMPXX_POLYNOMIAL_BUILT_IN_TYPE_OPERATOR_OVERLOAD, -, -=, CMPXX_EMPTY_MACRO);
+    CMPXX_INVOKE_MACRO_WITH_BUILT_IN_TYPE(CMPXX_POLYNOMIAL_BUILT_IN_TYPE_OPERATOR_OVERLOAD, *, *=, CMPXX_EMPTY_MACRO);
+    CMPXX_INVOKE_MACRO_WITH_BUILT_IN_TYPE(CMPXX_POLYNOMIAL_BUILT_IN_TYPE_OPERATOR_OVERLOAD, /, /=, CMPXX_EMPTY_MACRO);
+    CMPXX_INVOKE_MACRO_WITH_BUILT_IN_TYPE(CMPXX_POLYNOMIAL_BUILT_IN_TYPE_OPERATOR_OVERLOAD, %, %=, CMPXX_EMPTY_MACRO);
 }
 
 // dynamic-compile
@@ -1055,9 +1091,7 @@ void polynomial_test(){
     std::cout << "rhs : " << p.get_str() << "\n";
     std::cout << (q / p).get_str() << "\n";
     std::cout << (q % p).get_str() << "\n";
-
-    std::cout << (p < q) << "\n";
-    std::cout << (p < 3) << "\n";
+    std::cout << (2 * q).get_str() << "\n";
 }
 
 int main(){
