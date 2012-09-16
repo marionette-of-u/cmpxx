@@ -21,7 +21,7 @@ debug:
 	$(CC) $(CFLAGS) -g $(INCLUDES) $(SOURCEFILES)
 	$(CC) -o $(TARGET) $(SOURCEFILES:.cpp=.o) $(LIBS)
 
-run:
+run: release
 	./$(TARGET)
 
 clean:

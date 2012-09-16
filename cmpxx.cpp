@@ -696,6 +696,15 @@ namespace cmpxx{
             return r;
         }
 
+        inline static polynomial classical_gcd(const polynomial &x, const polynomial &y){
+            static_assert(commutative_ring == false, "Coefficient type is commutative ring.");
+            if(x >= y){
+                return gcd_default_impl(x, y);
+            }else{
+                return gcd_default_impl(y, x);
+            }
+        }
+
         inline const order &deg() const{
             return container.rbegin()->first;
         }
@@ -714,6 +723,20 @@ namespace cmpxx{
         }
 
     private:
+        static polynomial gcd_default_impl(polynomial lhs, polynomial rhs){
+            polynomial result;
+            if(rhs.container.empty()){ return result; }
+            polynomial *operands[3] = { &lhs, &rhs, &result };
+            for(; ; ){
+                *operands[2] = *operands[0] % *operands[1];
+                if(operands[2]->container.empty()){ break; }
+                polynomial *ptr = operands[0];
+                for(int i = 0; i < 2; ++i){ operands[i] = operands[i + 1]; }
+                operands[2] = ptr;
+            }
+            return *operands[1];
+        }
+
         bool base_less_equal(bool final, const polynomial &rhs) const{
             const ordered_container &rhs_container = rhs.container;
             typename ordered_container::const_reverse_iterator
@@ -1062,8 +1085,6 @@ namespace cmpxx{
 // dynamic-compile
 
 #include <cstdlib>
-#include <string>
-#include <sstream>
 #include <fstream>
 #include <exception>
 #include <dlfcn.h>
@@ -1138,24 +1159,31 @@ void dynamic_link_test(){
     }
 }
 
-void polynomial_test(){
+void polynomial_test_1(){
     typedef cmpxx::polynomial<cmpxx::integer, cmpxx::rational, true> poly;
     poly p, q;
 
+    // p = 444x^333 + 222x^111
     p["111"]("222")["333"]("444");
+    // q = 101x^999 + 888x^777 + 666x^555
     q["555"]("666")["777"]("888")["999"]("101");
 
     std::cout << "lhs : " << q.get_str() << "\n";
     std::cout << "rhs : " << p.get_str() << "\n";
     std::cout << (q / p).get_str() << "\n";
     std::cout << (q % p).get_str() << "\n";
-    std::cout << (1 < q) << "\n";
-    std::cout << (q > 1) << "\n";
-    std::cout << (q != p) << "\n";
+}
+
+void polynomial_test_2(){
+    typedef cmpxx::polynomial<cmpxx::integer, cmpxx::integer, false> poly;
+    poly f, g;
+    f = 126, g = 35;
+    std::cout << poly::classical_gcd(f, g).get_str() << "\n";
 }
 
 int main(){
-    polynomial_test();
+    polynomial_test_1();
+    polynomial_test_2();
     dynamic_link_test();
 
     return 0;
