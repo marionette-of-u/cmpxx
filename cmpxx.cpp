@@ -725,7 +725,7 @@ namespace cmpxx{
         }
 
         inline static polynomial classical_gcd(const polynomial &x, const polynomial &y){
-            static_assert(commutative_ring == false, "Coefficient type is commutative ring.");
+            static_assert(!commutative_ring, "coefficient type is commutative ring.");
             if(x >= y){
                 return classical_gcd_impl(x, y);
             }else{
@@ -733,8 +733,16 @@ namespace cmpxx{
             }
         }
 
+        inline static polynomial classical_eea(polynomial &cl, polynomial &cr, const polynomial &l, const polynomial &r){
+            if(l >= r){
+                return classical_eea_impl(cl, cr, l, r);
+            }else{
+                return classical_eea_impl(cr, cl, r, l);
+            }
+        }
+
         inline static polynomial eea(polynomial &cl, polynomial &cr, const polynomial &l, const polynomial &r){
-            static_assert(commutative_ring == true, "Coefficient type is non-commutative ring.");
+            static_assert(commutative_ring, "coefficient type is non-commutative ring.");
             if(l >= r){
                 return eea_impl(cl, cr, l, r);
             }else{
@@ -809,6 +817,22 @@ namespace cmpxx{
             return r_0;
         }
 
+        static polynomial classical_eea_impl(polynomial &c_lhs, polynomial &c_rhs, const polynomial &lhs, const polynomial &rhs){
+            polynomial r_0 = lhs, r_1 = rhs, s_0 = 1, s_1 = 0, t_0 = 0, t_1 = 1;
+            while(!r_1.container.empty()){
+                polynomial q = r_0 / r_1, r_m = r_1, s_m = s_1, t_m = t_1;
+                r_1 = r_0 - q * r_1;
+                s_1 = s_0 - q * s_1;
+                t_1 = t_0 - q * t_1;
+                r_0 = std::move(r_m);
+                s_0 = std::move(s_m);
+                t_0 = std::move(t_m);
+            }
+            c_lhs = std::move(s_0);
+            c_rhs = std::move(t_0);
+            return r_0;
+        }
+
         static polynomial classical_gcd_impl(polynomial lhs, polynomial rhs){
             polynomial result;
             if(rhs.container.empty()){ return result; }
@@ -823,7 +847,7 @@ namespace cmpxx{
             return *operands[1];
         }
 
-        bool base_less_equal(bool final, const polynomial &rhs) const{
+        bool base_less_equal(bool f, const polynomial &rhs) const{
             const ordered_container &rhs_container = rhs.container;
             typename ordered_container::const_reverse_iterator
                 lhs_iter = container.rbegin(),
@@ -852,7 +876,7 @@ namespace cmpxx{
                 if(lhs_iter == lhs_end && rhs_iter != rhs_end){ return false; }
                 if(lhs_iter != lhs_end && rhs_iter == rhs_end){ return true; }
             }
-            return final;
+            return f;
         }
 
         inline void add_order_n(const polynomial &rhs, const order &n){
@@ -1235,6 +1259,8 @@ namespace cmpxx{
 #include <iostream>
 
 void dynamic_link_test(){
+    std::cout << "-------- dynamic link test.\n";
+
     try{
         void *handle = cmpxx::aux::compile(std::string(CMPXX_IMPORT) + "int add(int x, int y){ return x + y; }");
         typedef int (*func_type)(int x, int y);
@@ -1244,6 +1270,8 @@ void dynamic_link_test(){
     }catch(std::runtime_error e){
         std::cerr << e.what() << std::endl;
     }
+
+    std::cout << std::endl;
 }
 
 void polynomial_test_1(){
@@ -1273,10 +1301,24 @@ void polynomial_test_1(){
         std::cout << "eea.\n";
         std::cout << "lhs : " << f << "\n";
         std::cout << "rhs : " << g << "\n";
-        std::cout << "eea : " << poly::eea(s, t, f, g).get_str() << "\n";
+        std::cout << "eea : " << poly::eea(s, t, f, g) << "\n";
         std::cout << "s   : " << s << "\n";
         std::cout << "t   : " << t << "\n";
-        std::cout << "eea : " << (s * f + t * g).get_str() << "\n";
+        std::cout << "eea : " << (s * f + t * g) << "\n";
+        std::cout << std::endl;
+    }
+
+    {
+        poly f, g, s, t;
+        f["3"]("18")["2"]("-42")["1"]("30")["0"]("-6");
+        g["2"]("-12")["1"]("10")["0"]("-2");
+        std::cout << "eea.\n";
+        std::cout << "lhs : " << f << "\n";
+        std::cout << "rhs : " << g << "\n";
+        std::cout << "eea : " << poly::classical_eea(s, t, f, g) << "\n";
+        std::cout << "s   : " << s << "\n";
+        std::cout << "t   : " << t << "\n";
+        std::cout << "eea : " << (s * f + t * g) << "\n";
         std::cout << std::endl;
     }
 
@@ -1289,6 +1331,16 @@ void polynomial_test_2(){
     typedef cmpxx::polynomial<cmpxx::integer, cmpxx::integer, false> poly;
     poly f = 126, g = 35;
     std::cout << "gcd(" << f.get_str() << ", " << g.get_str() << ") = " << poly::classical_gcd(f, g).get_str() << "\n";
+    std::cout << std::endl;
+
+    {
+        poly s, t;
+        std::cout << "eea : " << poly::classical_eea(s, t, 126, 35) << "\n";
+        std::cout << "s   : " << s << "\n";
+        std::cout << "t   : " << t << "\n";
+        std::cout << "eea : " << (s * 126 + t * 35) << "\n";
+        std::cout << std::endl;
+    }
 
     std::cout << std::endl;
 }
