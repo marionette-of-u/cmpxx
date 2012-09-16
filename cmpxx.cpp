@@ -1,3 +1,7 @@
+// debug
+
+#include <iostream>
+
 // aux
 
 #include <string>
@@ -48,6 +52,7 @@ namespace cmpxx{
 #include <utility>
 #include <limits>
 #include <sstream>
+#include <type_traits>
 #include <cmath>
 #include <cstdlib>
 #include <gmpxx.h>
@@ -226,9 +231,32 @@ namespace cmpxx{
             mp_type value_;
         };
 
+        namespace{
+            template<class T, decltype(&T::canonicalize) = &T::canonicalize>
+            std::true_type check_value_canonicalize(int);
+
+            template<class T>
+            std::false_type check_value_canonicalize(long);
+
+            template<class T>
+            struct has_canonicalize : decltype(check_value_canonicalize<T>(0)){};
+            
+            template<class MPClass>
+            inline std::string has_canonicalize_value_str(const mp_wrapper<MPClass> &value, std::true_type){
+                mp_wrapper<MPClass> clone(value);
+                clone.get_raw_value().canonicalize();
+                return clone.get_raw_value().get_str();
+            }
+
+            template<class MPClass>
+            inline std::string has_canonicalize_value_str(const mp_wrapper<MPClass> &value, std::false_type){
+                return value.get_raw_value().get_str();
+            }
+        }
+
         template<class MPClass>
         std::ostream &operator <<(std::ostream &ostream, const mp_wrapper<MPClass> &value){
-            ostream << value.get_raw_value().get_str();
+            ostream << has_canonicalize_value_str(value, has_canonicalize<MPClass>());
             return ostream;
         }
     }
@@ -516,7 +544,7 @@ namespace cmpxx{
 
         inline polynomial(const coefficient &coe) :
             container()
-        { if(coe != 0){ container.insert(ordered_container::value_type(0, coe)); } }
+        { if(coe != 0){ container.insert(typename ordered_container::value_type(0, coe)); } }
 
         #define CMPXX_POLYNOMIAL_CTOR(op, e, r, type) \
             inline polynomial(type value) :           \
@@ -699,9 +727,18 @@ namespace cmpxx{
         inline static polynomial classical_gcd(const polynomial &x, const polynomial &y){
             static_assert(commutative_ring == false, "Coefficient type is commutative ring.");
             if(x >= y){
-                return gcd_default_impl(x, y);
+                return classical_gcd_impl(x, y);
             }else{
-                return gcd_default_impl(y, x);
+                return classical_gcd_impl(y, x);
+            }
+        }
+
+        inline static polynomial eea(polynomial &cl, polynomial &cr, const polynomial &l, const polynomial &r){
+            static_assert(commutative_ring == true, "Coefficient type is non-commutative ring.");
+            if(l >= r){
+                return eea_impl(cl, cr, l, r);
+            }else{
+                return eea_impl(cr, cl, r, l);
             }
         }
 
@@ -711,6 +748,27 @@ namespace cmpxx{
 
         inline const coefficient &lc() const{
             return container.rbegin()->second;
+        }
+
+        inline void lu(){
+            if(container.empty()){
+                *this = 1;
+            }else{
+                *this = lc();
+            }
+        }
+
+        inline static polynomial normal(const polynomial &x){
+            if(x.container.empty()){
+                return 0;
+            }
+            polynomial result = x;
+            result /= x.lc();
+            return result;
+        }
+
+        inline void normalize(){
+            *this = normal(*this);
         }
 
         template<class Variable>
@@ -723,7 +781,35 @@ namespace cmpxx{
         }
 
     private:
-        static polynomial gcd_default_impl(polynomial lhs, polynomial rhs){
+        static polynomial eea_impl(polynomial &c_lhs, polynomial &c_rhs, const polynomial &lhs, const polynomial &rhs){
+            if(rhs.container.empty()){
+                c_lhs = 0;
+                c_rhs = 0;
+                return 0;
+            }
+            polynomial
+                r_0 = normal(lhs),
+                r_1 = normal(rhs),
+                s_0 = polynomial(1) / lhs.lc(),
+                s_1 = 0,
+                t_0 = 0,
+                t_1 = polynomial(1) / rhs.lc();
+            while(!r_1.container.empty()){
+                polynomial q = r_0 / r_1, rho = r_0 - q * r_1, r_m = r_1, s_m = s_1, t_m = t_1;
+                rho.lu();
+                r_1 = (r_0 - q * r_1) / rho;
+                s_1 = (s_0 - q * s_1) / rho;
+                t_1 = (t_0 - q * t_1) / rho;
+                r_0 = std::move(r_m);
+                s_0 = std::move(s_m);
+                t_0 = std::move(t_m);
+            }
+            c_lhs = std::move(s_0);
+            c_rhs = std::move(t_0);
+            return r_0;
+        }
+
+        static polynomial classical_gcd_impl(polynomial lhs, polynomial rhs){
             polynomial result;
             if(rhs.container.empty()){ return result; }
             polynomial *operands[3] = { &lhs, &rhs, &result };
@@ -799,7 +885,8 @@ namespace cmpxx{
                 const coefficient &coe = rhs_iter->second;
                 typename ordered_container::iterator iter = container.find(o);
                 if(iter == container.end()){
-                    container.insert(typename ordered_container::ref_value_type(o, -coe));
+                    iter = container.add(typename ordered_container::ref_value_type(o, coe));
+                    if(iter != container.end()){ iter->second = -iter->second; }
                 }else{
                     coefficient &lhs_coe(iter->second);
                     lhs_coe -= coe;
@@ -1160,25 +1247,50 @@ void dynamic_link_test(){
 }
 
 void polynomial_test_1(){
+    std::cout << "-------- commutative ring test.\n";
+
     typedef cmpxx::polynomial<cmpxx::integer, cmpxx::rational, true> poly;
-    poly p, q;
+    {
+        poly p, q;
 
-    // p = 444x^333 + 222x^111
-    p["111"]("222")["333"]("444");
-    // q = 101x^999 + 888x^777 + 666x^555
-    q["555"]("666")["777"]("888")["999"]("101");
+        // p = 444x^333 + 222x^111
+        p["111"]("222")["333"]("444");
+        // q = 101x^999 + 888x^777 + 666x^555
+        q["555"]("666")["777"]("888")["999"]("101");
 
-    std::cout << "lhs : " << q.get_str() << "\n";
-    std::cout << "rhs : " << p.get_str() << "\n";
-    std::cout << (q / p).get_str() << "\n";
-    std::cout << (q % p).get_str() << "\n";
+        std::cout << "div.\n";
+        std::cout << "lhs : " << q.get_str() << "\n";
+        std::cout << "rhs : " << p.get_str() << "\n";
+        std::cout << "div : " << (q / p).get_str() << "\n";
+        std::cout << "mod : " << (q % p).get_str() << "\n";
+        std::cout << std::endl;
+    }
+
+    {
+        poly f, g, s, t;
+        f["3"]("18")["2"]("-42")["1"]("30")["0"]("-6");
+        g["2"]("-12")["1"]("10")["0"]("-2");
+        std::cout << "eea.\n";
+        std::cout << "lhs : " << f << "\n";
+        std::cout << "rhs : " << g << "\n";
+        std::cout << "eea : " << poly::eea(s, t, f, g).get_str() << "\n";
+        std::cout << "s   : " << s << "\n";
+        std::cout << "t   : " << t << "\n";
+        std::cout << "eea : " << (s * f + t * g).get_str() << "\n";
+        std::cout << std::endl;
+    }
+
+    std::cout << std::endl;
 }
 
 void polynomial_test_2(){
+    std::cout << "-------- non-commutative ring test.\n";
+
     typedef cmpxx::polynomial<cmpxx::integer, cmpxx::integer, false> poly;
-    poly f, g;
-    f = 126, g = 35;
-    std::cout << poly::classical_gcd(f, g).get_str() << "\n";
+    poly f = 126, g = 35;
+    std::cout << "gcd(" << f.get_str() << ", " << g.get_str() << ") = " << poly::classical_gcd(f, g).get_str() << "\n";
+
+    std::cout << std::endl;
 }
 
 int main(){
