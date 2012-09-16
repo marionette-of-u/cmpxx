@@ -118,7 +118,7 @@ namespace cmpxx{
                 }                                                           \
                 inline mp_wrapper(type value) : value_(value){}
 
-            CMPXX_INVOKE_MACRO_WITH_BUILT_IN_TYPE(CMPXX_MP_WRAPPER_DEFINE_ASSIGN_OPERATOR, CMPXX_EMPTY_MACRO, CMPXX_EMPTY_MACRO, CMPXX_EMPTY_MACRO);
+            CMPXX_INVOKE_MACRO_WITH_BUILT_IN_TYPE(CMPXX_MP_WRAPPER_DEFINE_ASSIGN_OPERATOR, nil, nil, nil);
 
             #define CMPXX_MP_WRAPPER_DEFINE_COMPOUND_OPERATOR_IMPL(op, e, r, type) \
                 inline mp_wrapper &op(type value){                                 \
@@ -143,7 +143,7 @@ namespace cmpxx{
                     get_raw_value().op(raw_value);                           \
                     return *this;                                            \
                 }                                                            \
-                CMPXX_INVOKE_MACRO_WITH_BUILT_IN_TYPE(CMPXX_MP_WRAPPER_DEFINE_COMPOUND_OPERATOR_IMPL, op, CMPXX_EMPTY_MACRO, CMPXX_EMPTY_MACRO);
+                CMPXX_INVOKE_MACRO_WITH_BUILT_IN_TYPE(CMPXX_MP_WRAPPER_DEFINE_COMPOUND_OPERATOR_IMPL, op, nil, nil);
 
             #define CMPXX_MP_WRAPPER_DEFINE_COMPOUND_OPERATOR_UI(op) \
                 inline mp_wrapper &op(unsigned long int v){          \
@@ -511,9 +511,9 @@ namespace cmpxx{
 
         CMPXX_INVOKE_MACRO_WITH_BUILT_IN_TYPE(
             CMPXX_POLYNOMIAL_CTOR,
-            CMPXX_EMPTY_MACRO,
-            CMPXX_EMPTY_MACRO,
-            CMPXX_EMPTY_MACRO
+            nil,
+            nil,
+            nil
         );
 
     private:
@@ -642,6 +642,30 @@ namespace cmpxx{
             return *this;
         }
 
+        inline bool operator <(const polynomial &rhs) const{
+            return base_less_equal(false, rhs);
+        }
+
+        inline bool operator >(const polynomial &rhs) const{
+            return rhs.base_less_equal(false, *this);
+        }
+
+        inline bool operator <=(const polynomial &rhs) const{
+            return base_less_equal(true, rhs);
+        }
+        
+        inline bool operator >=(const polynomial &rhs) const{
+            return rhs.base_less_equal(true, *this);
+        }
+
+        inline bool operator ==(const polynomial &rhs) const{
+            return container == rhs.container;
+        }
+
+        inline bool operator !=(const polynomial &rhs) const{
+            return container != rhs.container;
+        }
+
         static polynomial div(polynomial &rem, const polynomial &lhs, const polynomial &rhs){
             polynomial r;
             rem = lhs;
@@ -680,6 +704,7 @@ namespace cmpxx{
             return get_str("x");
         }
 
+    private:
         bool base_less_equal(bool final, const polynomial &rhs) const{
             const ordered_container &rhs_container = rhs.container;
             typename ordered_container::const_reverse_iterator
@@ -712,7 +737,6 @@ namespace cmpxx{
             return final;
         }
 
-    private:
         inline void add_order_n(const polynomial &rhs, const order &n){
             for(auto &rhs_value : rhs.container){
                 order o = rhs_value.first + n;
@@ -985,11 +1009,39 @@ namespace cmpxx{
     CMPXX_POLYNOMIAL_OPERATOR_OVERLOAD(/, /=);
     CMPXX_POLYNOMIAL_OPERATOR_OVERLOAD(%, %=);
 
-    CMPXX_INVOKE_MACRO_WITH_BUILT_IN_TYPE(CMPXX_POLYNOMIAL_BUILT_IN_TYPE_OPERATOR_OVERLOAD, +, +=, CMPXX_EMPTY_MACRO);
-    CMPXX_INVOKE_MACRO_WITH_BUILT_IN_TYPE(CMPXX_POLYNOMIAL_BUILT_IN_TYPE_OPERATOR_OVERLOAD, -, -=, CMPXX_EMPTY_MACRO);
-    CMPXX_INVOKE_MACRO_WITH_BUILT_IN_TYPE(CMPXX_POLYNOMIAL_BUILT_IN_TYPE_OPERATOR_OVERLOAD, *, *=, CMPXX_EMPTY_MACRO);
-    CMPXX_INVOKE_MACRO_WITH_BUILT_IN_TYPE(CMPXX_POLYNOMIAL_BUILT_IN_TYPE_OPERATOR_OVERLOAD, /, /=, CMPXX_EMPTY_MACRO);
-    CMPXX_INVOKE_MACRO_WITH_BUILT_IN_TYPE(CMPXX_POLYNOMIAL_BUILT_IN_TYPE_OPERATOR_OVERLOAD, %, %=, CMPXX_EMPTY_MACRO);
+    CMPXX_INVOKE_MACRO_WITH_BUILT_IN_TYPE(CMPXX_POLYNOMIAL_BUILT_IN_TYPE_OPERATOR_OVERLOAD, +, +=, nil);
+    CMPXX_INVOKE_MACRO_WITH_BUILT_IN_TYPE(CMPXX_POLYNOMIAL_BUILT_IN_TYPE_OPERATOR_OVERLOAD, -, -=, nil);
+    CMPXX_INVOKE_MACRO_WITH_BUILT_IN_TYPE(CMPXX_POLYNOMIAL_BUILT_IN_TYPE_OPERATOR_OVERLOAD, *, *=, nil);
+    CMPXX_INVOKE_MACRO_WITH_BUILT_IN_TYPE(CMPXX_POLYNOMIAL_BUILT_IN_TYPE_OPERATOR_OVERLOAD, /, /=, nil);
+    CMPXX_INVOKE_MACRO_WITH_BUILT_IN_TYPE(CMPXX_POLYNOMIAL_BUILT_IN_TYPE_OPERATOR_OVERLOAD, %, %=, nil);
+
+    #define CMPXX_POLYNOMIAL_BOOLEAN_OPERATOR_OVERLOAD_IMPL(op, t)                  \
+        template<class Order, class Coefficient, bool CommutativeRing, class Alloc> \
+        inline bool operator op(                                                    \
+            const polynomial<Order, Coefficient, CommutativeRing, Alloc> &l,        \
+            const t &r                                                              \
+        ){ return l op polynomial<Order, Coefficient, CommutativeRing, Alloc>(r); } \
+        template<class Order, class Coefficient, bool CommutativeRing, class Alloc> \
+        inline bool operator op(                                                    \
+            const t &l,                                                             \
+            const polynomial<Order, Coefficient, CommutativeRing, Alloc> &r         \
+        ){ return polynomial<Order, Coefficient, CommutativeRing, Alloc>(l) op r; }
+
+    #define CMPXX_POLYNOMIAL_BOOLEAN_OPERATOR_OVERLOAD(op, e, r, t) \
+        CMPXX_POLYNOMIAL_BOOLEAN_OPERATOR_OVERLOAD_IMPL(<, t);      \
+        CMPXX_POLYNOMIAL_BOOLEAN_OPERATOR_OVERLOAD_IMPL(>, t);      \
+        CMPXX_POLYNOMIAL_BOOLEAN_OPERATOR_OVERLOAD_IMPL(<=, t);     \
+        CMPXX_POLYNOMIAL_BOOLEAN_OPERATOR_OVERLOAD_IMPL(>=, t);     \
+        CMPXX_POLYNOMIAL_BOOLEAN_OPERATOR_OVERLOAD_IMPL(==, t);     \
+        CMPXX_POLYNOMIAL_BOOLEAN_OPERATOR_OVERLOAD_IMPL(!=, t);
+
+    CMPXX_POLYNOMIAL_BOOLEAN_OPERATOR_OVERLOAD_IMPL(<, Coefficient);
+    CMPXX_POLYNOMIAL_BOOLEAN_OPERATOR_OVERLOAD_IMPL(>, Coefficient);
+    CMPXX_POLYNOMIAL_BOOLEAN_OPERATOR_OVERLOAD_IMPL(>=, Coefficient);
+    CMPXX_POLYNOMIAL_BOOLEAN_OPERATOR_OVERLOAD_IMPL(<=, Coefficient);
+    CMPXX_POLYNOMIAL_BOOLEAN_OPERATOR_OVERLOAD_IMPL(==, Coefficient);
+    CMPXX_POLYNOMIAL_BOOLEAN_OPERATOR_OVERLOAD_IMPL(!=, Coefficient);
+    CMPXX_INVOKE_MACRO_WITH_BUILT_IN_TYPE(CMPXX_POLYNOMIAL_BOOLEAN_OPERATOR_OVERLOAD, nil, nil, nil);
 }
 
 // dynamic-compile
@@ -1091,7 +1143,9 @@ void polynomial_test(){
     std::cout << "rhs : " << p.get_str() << "\n";
     std::cout << (q / p).get_str() << "\n";
     std::cout << (q % p).get_str() << "\n";
-    std::cout << (2 * q).get_str() << "\n";
+    std::cout << (1 < q) << "\n";
+    std::cout << (q > 1) << "\n";
+    std::cout << (q != p) << "\n";
 }
 
 int main(){
