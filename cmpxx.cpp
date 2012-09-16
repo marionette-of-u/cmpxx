@@ -1,5 +1,8 @@
 // aux
 
+#include <string>
+#include <sstream>
+
 #define CMPXX_INVOKE_MACRO_WITH_BUILT_IN_TYPE(macro, op, e, r) \
     macro(op, e, r, signed char);        \
     macro(op, e, r, unsigned char);      \
@@ -26,7 +29,18 @@
     d(op, e, r, double)             \
     ld(op, e, r, long double)
 
-#define CMPXX_EMPTY_MACRO
+namespace cmpxx{
+    namespace aux{
+        template<class T>
+        inline std::string lexical_cast(const T &value){
+            std::string str;
+            std::stringstream sstream;
+            sstream << value;
+            sstream >> str;
+            return str;
+        }
+    }
+}
 
 // integer/rational/floating/polynomial
 
@@ -509,12 +523,7 @@ namespace cmpxx{
                 container()                           \
             { if(value != 0){ container.insert(typename ordered_container::ref_value_type(0, coefficient(value))); } }
 
-        CMPXX_INVOKE_MACRO_WITH_BUILT_IN_TYPE(
-            CMPXX_POLYNOMIAL_CTOR,
-            nil,
-            nil,
-            nil
-        );
+        CMPXX_INVOKE_MACRO_WITH_BUILT_IN_TYPE(CMPXX_POLYNOMIAL_CTOR, nil, nil, nil);
 
     private:
         inline polynomial(const ordered_container &container_) :
@@ -1042,6 +1051,12 @@ namespace cmpxx{
     CMPXX_POLYNOMIAL_BOOLEAN_OPERATOR_OVERLOAD_IMPL(==, Coefficient);
     CMPXX_POLYNOMIAL_BOOLEAN_OPERATOR_OVERLOAD_IMPL(!=, Coefficient);
     CMPXX_INVOKE_MACRO_WITH_BUILT_IN_TYPE(CMPXX_POLYNOMIAL_BOOLEAN_OPERATOR_OVERLOAD, nil, nil, nil);
+
+    template<class Order, class Coefficient, bool CommutativeRing, class Alloc>
+    std::ostream &operator <<(std::ostream &ostream, const polynomial<Order, Coefficient, CommutativeRing, Alloc> &value){
+        ostream << value.get_str();
+        return ostream;
+    }
 }
 
 // dynamic-compile
@@ -1074,15 +1089,6 @@ namespace cmpxx{
     };
 
     namespace aux{
-        template<class T>
-        inline std::string lexical_cast(const T &value){
-            std::string str;
-            std::stringstream sstream;
-            sstream << value;
-            sstream >> str;
-            return str;
-        }
-
         void *compile(const std::string code){
             static int count = 0;
             std::string cpp_file_name, o_file_name, so_file_name, clang_command_line;
