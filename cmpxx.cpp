@@ -6,6 +6,7 @@
 
 #include <string>
 #include <sstream>
+#include <gmpxx.h>
 
 #define CMPXX_INVOKE_MACRO_WITH_BUILT_IN_TYPE(macro, op, e, r) \
     macro(op, e, r, signed char);        \
@@ -42,6 +43,41 @@ namespace cmpxx{
             sstream << value;
             sstream >> str;
             return str;
+        }
+
+        inline std::size_t index_of_leftmost_flag(mp_limb_t x){
+            mp_limb_t y, n = GMP_LIMB_BITS, c = n >> 1;
+            do{
+                y = x >> c;
+                if(y != 0){
+                    n -= c;
+                    x = y;
+                }
+                c >>= 1;
+            }while(c != 0);
+            return GMP_LIMB_BITS - n - x + 2;
+        }
+
+        inline std::size_t index_of_rightmost_flag(mp_limb_t x){
+            if(x == 0){ return 32; }
+            mp_limb_t y, n = GMP_LIMB_BITS - 1, c = GMP_LIMB_BITS >> 1;
+            do{
+                y = x << c;
+                if(y != 0){
+                    n -= c;
+                    x = y;
+                }
+                c >>= 1;
+            }while(c != 0);
+            return n;
+        }
+
+        inline mp_limb_t ceil_pow2(mp_limb_t n){
+            --n;
+            for(std::size_t i = 1; i < GMP_LIMB_BITS; i <<= 1){
+                n = n | (n >> i);
+            }
+            return n + 1;
         }
     }
 }
@@ -202,6 +238,7 @@ namespace cmpxx{
             }
 
             inline mp_wrapper ceil_pow2() const{
+                static_assert(std::is_same<MPClass, mpz_class>::value, "this type is not integer.");
                 const std::size_t popcount = mpz_popcount(get_raw_value().get_mpz_t()), size = mpz_size(get_raw_value().get_mpz_t());
                 if(popcount <= 1){
                     return *this;
@@ -214,6 +251,42 @@ namespace cmpxx{
                 }
                 r.get_raw_value().get_mpz_t()->_mp_d[size - 1] = x - (x >> 1);
                 return r;
+            }
+
+            inline std::size_t ceil_log2() const{
+                static_assert(std::is_same<MPClass, mpz_class>::value, "this type is not integer.");
+                std::size_t size = mpz_size(get_raw_value().get_mpz_t());
+                mp_limb_t *data = get_raw_value().get_mpz_t()->_mp_d, x = data[size - 1];
+                std::size_t n = index_of_leftmost_flag(x);
+                if(x - (1 << (n - 1)) != 0){
+                    return (size - 1) * GMP_LIMB_BITS + n + 1;
+                }
+                std::size_t m = 0;
+                for(std::size_t i = 0, length = size - 1; i < length; ++i){
+                    if(data[i] != 0){
+                        m = 1;
+                        break;
+                    }
+                }
+                return (size - 1) * GMP_LIMB_BITS + n + m;
+            }
+
+            inline static mp_wrapper absolute_max(const mp_wrapper &x, const mp_wrapper &y){
+                if(x > 0){
+                    if(y > 0){
+                        return x > y ? x : y;
+                    }else{
+                        mp_wrapper temp = -y;
+                        return x > temp ? x : temp;
+                    }
+                }else{
+                    if(y > 0){
+                        mp_wrapper temp = -x;
+                        return temp > y ? temp : y;
+                    }else{
+                        return x < y ? x : y;
+                    }
+                }
             }
 
         private:
@@ -666,15 +739,15 @@ namespace cmpxx{
             return *this;
         }
 
-        inline polynomial operator /=(const polynomial &rhs){
+        inline polynomial &operator /=(const polynomial &rhs){
             polynomial rem;
-            *this = div(rem, *this, rhs);
+            *this = div<false>(rem, *this, rhs);
             return *this;
         }
 
-        inline polynomial operator %=(const polynomial &rhs){
+        inline polynomial &operator %=(const polynomial &rhs){
             polynomial rem;
-            div(rem, *this, rhs);
+            div<true>(rem, *this, rhs);
             *this = std::move(rem);
             return *this;
         }
@@ -703,7 +776,13 @@ namespace cmpxx{
             return container != rhs.container;
         }
 
+        template<bool Rem>
         static polynomial div(polynomial &rem, const polynomial &lhs, const polynomial &rhs){
+            if(lhs.container.empty()){ return 0; }
+            if(commutative_ring && rhs.is_monic()){
+                polynomial r = monic_div<Rem>(rem, lhs, rhs);
+                return r;
+            }
             polynomial r;
             rem = lhs;
             const auto &rhs_last_iter = rhs.container.rbegin();
@@ -750,6 +829,19 @@ namespace cmpxx{
             }
         }
 
+        polynomial inverse(const order &l) const{
+            const polynomial &f = *this;
+            polynomial g = 1;
+            std::size_t r = l.ceil_log2();
+            order rem = 2;
+            for(std::size_t i = 0; i < r; ++i, rem *= rem){
+                polynomial next_g = 2 * g - f * g * g;
+                next_g.container.erase(next_g.container.lower_bound(rem), next_g.container.end());
+                g = std::move(next_g);
+            }
+            return g;
+        }
+
         inline const order &deg() const{
             return container.rbegin()->first;
         }
@@ -779,6 +871,29 @@ namespace cmpxx{
             *this = normal(*this);
         }
 
+        inline coefficient intinity_norm() const{
+            coefficient r = 0;
+            for(auto &iter : container){
+                r = coefficient::absolute_max(r, iter.second);
+            }
+            if(r < 0){ r *= -1; }
+            return r;
+        }
+
+        inline polynomial rev() const{
+            polynomial result;
+            const order &n = deg();
+            for(const auto &iter : container){
+                order m = n - iter.first;
+                result.container.insert(typename ordered_container::ref_value_type(m, iter.second));
+            }
+            return result;
+        }
+
+        inline bool is_monic() const{
+            return !container.empty() && lc() == 1;
+        }
+
         template<class Variable>
         inline std::string get_str(const Variable &v) const{
             return get_str_impl<std::string, char, Variable, std::ostringstream>(v, '*', '^', '+', '-', '0', '(', ')');
@@ -802,6 +917,7 @@ namespace cmpxx{
                 s_1 = 0,
                 t_0 = 0,
                 t_1 = polynomial(1) / rhs.lc();
+            int counter = 0;
             while(!r_1.container.empty()){
                 polynomial q = r_0 / r_1, rho = r_0 - q * r_1, r_m = r_1, s_m = s_1, t_m = t_1;
                 rho.lu();
@@ -837,7 +953,7 @@ namespace cmpxx{
             polynomial result;
             if(rhs.container.empty()){ return result; }
             polynomial *operands[3] = { &lhs, &rhs, &result };
-            for(; ; ){
+            while(true){
                 *operands[2] = *operands[0] % *operands[1];
                 if(operands[2]->container.empty()){ break; }
                 polynomial *ptr = operands[0];
@@ -916,6 +1032,25 @@ namespace cmpxx{
                     lhs_coe -= coe;
                     if(lhs_coe == 0){ container.erase(static_cast<typename ordered_container::const_iterator>(iter)); }
                 }
+            }
+        }
+
+        template<bool Rem>
+        static polynomial monic_div(polynomial &rem, const polynomial &a, const polynomial &b){
+            if(a.deg() < b.deg()){
+                if(Rem){ rem = a; }
+                return 0;
+            }
+            polynomial q;
+            order mpp = a.deg() - b.deg() + 1;
+            q = a.rev() * b.rev().inverse(mpp);
+            q.container.erase(q.container.lower_bound(mpp), q.container.end());
+            if(Rem){
+                q = q.rev();
+                rem = a - b * q;
+                return q;
+            }else{
+                return q.rev();
             }
         }
 
@@ -1256,6 +1391,8 @@ namespace cmpxx{
     }
 }
 
+// test
+
 #include <iostream>
 
 void dynamic_link_test(){
@@ -1345,7 +1482,7 @@ void polynomial_test_2(){
     std::cout << std::endl;
 }
 
-int main(){
+int main(int argc, char *argv[]){
     polynomial_test_1();
     polynomial_test_2();
     dynamic_link_test();
