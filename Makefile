@@ -3,7 +3,7 @@ SOURCEFILES = cmpxx.cpp
 INCLUDES    = -I"C:/MinGW/lib/gcc/mingw32/4.6.2/include"
 CC          = clang++
 CFLAGS      = -std=c++11 -c
-RFLAGS      = -C3
+RFLAGS      = -O3
 DFLAGS      = -g
 LFLAGS      = -cc1 -std=c++11 -fcxx-exceptions -O0 -g -emit-llvm
 LIBS        = -lgmpxx -lgmp -ldl
