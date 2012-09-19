@@ -778,7 +778,7 @@ namespace cmpxx{
 
         template<bool Rem>
         static polynomial div(polynomial &rem, const polynomial &lhs, const polynomial &rhs){
-            if(lhs.container.empty()){ return 0; }
+            if(lhs.container.empty()){ return lhs; }
             if(commutative_ring && rhs.is_monic()){
                 polynomial r = monic_div<Rem>(rem, lhs, rhs);
                 return r;
@@ -1039,7 +1039,7 @@ namespace cmpxx{
         static polynomial monic_div(polynomial &rem, const polynomial &a, const polynomial &b){
             if(a.deg() < b.deg()){
                 if(Rem){ rem = a; }
-                return 0;
+                return polynomial();
             }
             polynomial q;
             order mpp = a.deg() - b.deg() + 1;
