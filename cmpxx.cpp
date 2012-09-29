@@ -1,9 +1,23 @@
 // debug
 
 #include <iostream>
+#include <string>
+#include <typeinfo>
+#include <cxxabi.h>
+
+// caution!! memory leaks!!
+namespace cmpxx{
+    namespace debug{
+        inline std::string demangle(const std::string &str){
+            int state;
+            return abi::__cxa_demangle(str.c_str(), 0, 0, &state);
+        }
+    }
+}
 
 // aux
 
+#include <utility>
 #include <string>
 #include <sstream>
 #include <gmpxx.h>
@@ -36,6 +50,652 @@
 
 namespace cmpxx{
     namespace aux{
+        template<bool Commutative = false>
+        struct exp_operator_assign{
+            static const bool commutative = Commutative;
+            static const std::size_t operand_num = 2;
+
+            template<class T>
+            inline static T &apply(T &target, const T &operand){
+                target = operand;
+                return target;
+            }
+        };
+
+        template<bool Commutative = true>
+        struct exp_operator_add{
+            static const bool commutative = Commutative;
+            static const std::size_t operand_num = 2;
+
+            template<class T>
+            inline static T &apply(T &target, const T &operand){
+                target += operand;
+                return target;
+            }
+        };
+
+        template<bool Commutative = false>
+        struct exp_operator_sub{
+            static const bool commutative = Commutative;
+            static const std::size_t operand_num = 2;
+
+            template<class T>
+            inline static T &apply(T &target, const T &operand){
+                target -= operand;
+                return target;
+            }
+        };
+
+        template<bool Commutative = true>
+        struct exp_operator_mul{
+            static const bool commutative = Commutative;
+            static const std::size_t operand_num = 2;
+
+            template<class T>
+            inline static T &apply(T &target, const T &operand){
+                target *= operand;
+                return target;
+            }
+        };
+
+        template<bool Commutative = false>
+        struct exp_operator_div{
+            static const bool commutative = Commutative;
+            static const std::size_t operand_num = 2;
+
+            template<class T>
+            inline static T &apply(T &target, const T &operand){
+                target /= operand;
+                return target;
+            }
+        };
+
+        template<bool Commutative = false>
+        struct exp_operator_rem{
+            static const bool commutative = Commutative;
+            static const std::size_t operand_num = 2;
+
+            template<class T>
+            inline static T &apply(T &target, const T &operand){
+                target %= operand;
+                return target;
+            }
+        };
+
+        template<bool Commutative = false>
+        struct exp_operator_lshift{
+            static const bool commutative = Commutative;
+            static const std::size_t operand_num = 2;
+
+            template<class T, class U>
+            inline static T &apply(T &target, const U &operand){
+                target <<= operand;
+                return target;
+            }
+        };
+
+        template<bool Commutative = false>
+        struct exp_operator_rshift{
+            static const bool commutative = Commutative;
+            static const std::size_t operand_num = 2;
+
+            template<class T, class U>
+            inline static T &apply(T &target, const U &operand){
+                target >>= operand;
+                return target;
+            }
+        };
+
+        template<bool Commutative = true>
+        struct exp_operator_and{
+            static const bool commutative = Commutative;
+            static const std::size_t operand_num = 2;
+
+            template<class T>
+            inline static T &apply(T &target, const T &operand){
+                target &= operand;
+                return target;
+            }
+        };
+
+        template<bool Commutative = true>
+        struct exp_operator_or{
+            static const bool commutative = Commutative;
+            static const std::size_t operand_num = 2;
+
+            template<class T>
+            inline static T &apply(T &target, const T &operand){
+                target |= operand;
+                return target;
+            }
+        };
+
+        template<bool Commutative = false>
+        struct exp_operator_xor{
+            static const bool commutative = Commutative;
+            static const std::size_t operand_num = 2;
+
+            template<class T>
+            inline static T &apply(T &target, const T &operand){
+                target ^= operand;
+                return target;
+            }
+        };
+
+        template<class PositiveFunctor>
+        struct exp_operator_positive{
+            static const bool commutative = false;
+            static const std::size_t operand_num = 1;
+
+            template<class T>
+            inline static T &apply(T &target){
+                PositiveFunctor()(target);
+                return target;
+            };
+        };
+
+        template<class NegativeFunctor>
+        struct exp_operator_negative{
+            static const bool commutative = false;
+            static const std::size_t operand_num = 1;
+
+            template<class T>
+            inline static T &apply(T &target){
+                NegativeFunctor()(target);
+                return target;
+            }
+        };
+
+        template<class IncFunctor>
+        struct exp_operator_inc{
+            static const bool commutative = false;
+            static const std::size_t operand_num = 1;
+
+            template<class T>
+            inline static T &apply(T &target){
+                IncFunctor()(target);
+                return target;
+            }
+        };
+
+        template<class DecFunctor>
+        struct exp_operator_dec{
+            static const bool commutative = false;
+            static const std::size_t operand_num = 1;
+
+            template<class T>
+            inline static T &apply(T &target){
+                DecFunctor()(target);
+                return target;
+            }
+        };
+
+        template<class AndFunctor, bool Commutative = true>
+        struct exp_operator_logical_and{
+            static const bool commutative = Commutative;
+            static const std::size_t operand_num = 2;
+
+            template<class T>
+            inline static bool apply(T &target, const T &operand){
+                return AndFunctor()(target, operand);
+            }
+        };
+
+        template<class OrFunctor, bool Commutative = true>
+        struct exp_operator_logical_or{
+            static const bool commutative = Commutative;
+            static const std::size_t operand_num = 2;
+
+            template<class T>
+            inline static bool apply(T &target, const T &operand){
+                return OrFunctor()(target, operand);
+            }
+        };
+
+        template<class NotFunctor>
+        struct exp_operator_not{
+            static const bool commutative = false;
+            static const std::size_t operand_num = 1;
+
+            template<class T>
+            inline static bool apply(T &target){
+                return NotFunctor()(target);
+            }
+        };
+
+        template<class LessFunctor, bool Commutative = false>
+        struct exp_operator_less{
+            static const bool commutative = Commutative;
+            static const std::size_t operand_num = 2;
+
+            template<class T, class U>
+            inline static bool apply(const T &target, const U &operand){
+                return LessFunctor()(target, operand);
+            }
+        };
+
+        template<class GreaterFunctor, bool Commutative = false>
+        struct exp_operator_greater{
+            static const bool commutative = Commutative;
+            static const std::size_t operand_num = 2;
+
+            template<class T, class U>
+            inline static bool apply(const T &target, const U &operand){
+                return GreaterFunctor()(target, operand);
+            }
+        };
+
+        template<class LessEqualFunctor, bool Commutative = false>
+        struct exp_operator_less_equal{
+            static const bool commutative = Commutative;
+            static const std::size_t operand_num = 2;
+
+            template<class T, class U>
+            inline static bool apply(const T &target, const U &operand){
+                return LessEqualFunctor()(target, operand);
+            }
+        };
+
+        template<class GreaterEqualFunctor, bool Commutative = false>
+        struct exp_operator_greater_equal{
+            static const bool commutative = Commutative;
+            static const std::size_t operand_num = 2;
+
+            template<class T, class U>
+            inline static bool apply(const T &target, const U &operand){
+                return GreaterEqualFunctor()(target, operand);
+            }
+        };
+
+        template<class EqualFunctor, bool Commutative = true>
+        struct exp_operator_equal{
+            static const bool commutative = Commutative;
+            static const std::size_t operand_num = 2;
+
+            template<class T, class U>
+            inline static bool apply(const T &target, const U &operand){
+                return EqualFunctor()(target, operand);
+            }
+        };
+
+        template<class NotEqualFunctor, bool Commutative = true>
+        struct exp_operator_not_equal{
+            static const bool commutative = Commutative;
+            static const std::size_t operand_num = 2;
+
+            template<class T, class U>
+            inline static bool apply(const T &target, const U &operand){
+                return NotEqualFunctor()(target, operand);
+            }
+        };
+
+        template<class Operator, bool Commutative, bool Reverse, std::size_t OperandNum>
+        struct specialized_evaluator;
+
+        template<class Operator, bool Commutative, bool Reverse>
+        struct specialized_evaluator<Operator, Commutative, Reverse, 1>{
+            template<class T>
+            inline static decltype(Operator::apply(T())) &eval(T &target){
+                return Operator::apply(target);
+            }
+        };
+
+        template<class Operator, bool Commutative, bool Reverse>
+        struct specialized_evaluator<Operator, Commutative, Reverse, 2>{
+             template<class T>
+            inline static void eval(T &target, const T &operand){
+                Operator::apply(target, operand);
+            }
+
+        };
+
+        template<class Type>
+        struct identity_expression{
+            using type = Type;
+            static const bool calculated = true;
+
+            inline identity_expression(const type &value_a) :
+                value_(value_a)
+            {}
+
+            inline identity_expression(const identity_expression &other) :
+                value_(other.value_)
+            {}
+
+            inline void eval(type &result) const{
+                result = value_;
+            }
+
+            const type &value_;
+        };
+
+        template<class Type, class BinaryOp, class L, class R, bool Calculated = false>
+        struct binary_expression{
+            using type = Type;
+            using binary_operator = BinaryOp;
+            using lhs = L;
+            using rhs = R;
+            static const bool calculated = Calculated;
+
+            inline binary_expression(const lhs &lhs_a, const rhs &rhs_a) :
+                lhs_(lhs_a), rhs_(rhs_a)
+            {}
+
+            inline binary_expression(const binary_expression &other) :
+                lhs_(other.lhs_), rhs_(other.rhs_)
+            {}
+
+            inline void eval(type &result) const{
+                type rhs;
+                lhs_.eval(result);
+                rhs_.eval(rhs);
+                specialized_evaluator<
+                    binary_operator,
+                    binary_operator::commutative,
+                    false,
+                    binary_operator::operand_num
+                >::eval(result, rhs);
+            }
+
+            const lhs &lhs_;
+            const rhs &rhs_;
+        };
+
+        template<class Type, class BinaryOp, bool Calculated>
+        struct binary_expression<Type, BinaryOp, identity_expression<Type>, identity_expression<Type>, Calculated>{
+            using type = Type;
+            using binary_operator = BinaryOp;
+            using lhs = type;
+            using rhs = type;
+            static const bool calculated = Calculated;
+
+            inline binary_expression(const lhs &lhs_a, const rhs &rhs_a) :
+                lhs_(lhs_a), rhs_(rhs_a)
+            {}
+
+            inline binary_expression(const binary_expression &other) :
+                lhs_(other.lhs_), rhs_(other.rhs_)
+            {}
+
+            inline void eval(type &result) const{
+                result = lhs_;
+                specialized_evaluator<
+                    binary_operator,
+                    binary_operator::commutative,
+                    false,
+                    binary_operator::operand_num
+                >::eval(result, rhs_);
+            }
+
+            const lhs &lhs_;
+            const rhs &rhs_;
+        };
+
+        template<class Type, class BinaryOp, class R, bool Calculated>
+        struct binary_expression<Type, BinaryOp, identity_expression<Type>, R, Calculated>{
+            using type = Type;
+            using binary_operator = BinaryOp;
+            using lhs = type;
+            using rhs = R;
+            static const bool calculated = Calculated;
+
+            inline binary_expression(const lhs &lhs_a, const rhs &rhs_a) :
+                lhs_(lhs_a), rhs_(rhs_a)
+            {}
+
+            inline binary_expression(const binary_expression &other) :
+                lhs_(other.lhs_), rhs_(other.rhs_)
+            {}
+
+            inline void eval(type &result) const{
+                type rhs;
+                result = lhs_;
+                rhs_.eval(rhs);
+                specialized_evaluator<
+                    binary_operator,
+                    binary_operator::commutative,
+                    false,
+                    binary_operator::operand_num
+                >::eval(result, rhs);
+            }
+
+            const lhs &lhs_;
+            const rhs &rhs_;
+        };
+
+        template<class Type, class BinaryOp, class L, bool Calculated>
+        struct binary_expression<Type, BinaryOp, L, identity_expression<Type>, Calculated>{
+            using type = Type;
+            using binary_operator = BinaryOp;
+            using lhs = L;
+            using rhs = type;
+            static const bool calculated = Calculated;
+
+            inline binary_expression(const lhs &lhs_a, const rhs &rhs_a) :
+                lhs_(lhs_a), rhs_(rhs_a)
+            {}
+
+            inline binary_expression(const binary_expression &other) :
+                lhs_(other.lhs_), rhs_(other.rhs_)
+            {}
+
+            inline void eval(type &result) const{
+                lhs_.eval(result);
+                specialized_evaluator<
+                    binary_operator,
+                    binary_operator::commutative,
+                    false,
+                    binary_operator::operand_num
+                >::eval(result, rhs_);
+            }
+
+            const lhs &lhs_;
+            const rhs &rhs_;
+        };
+
+        template<class Type, class UnaryOp, class T, bool Calculated = false>
+        struct unary_expression{
+            using type = Type;
+            using unary_operator = UnaryOp;
+            using operand = T;
+            static const bool calculated = Calculated;
+
+            inline unary_expression(const operand &x) :
+                x_(x)
+            {}
+
+            inline unary_expression(const unary_expression &other) :
+                x_(other.x_)
+            {}
+
+            inline const type &eval(type &result) const{
+                result = specialized_evaluator<
+                    unary_operator,
+                    unary_operator::commutative,
+                    false,
+                    unary_operator::operand_num
+                >::eval(x_);
+            }
+
+            const operand &x_;
+        };
+
+        template<bool Cond>
+        struct boolean_type{
+            static const bool value = Cond;
+        };
+
+        template<class Dir, class Parent>
+        struct dir_and_parent{
+            using dir = Dir;
+            using parent = Parent;
+        };
+
+        using root_of_dir_and_parent = dir_and_parent<void, void>;
+
+        template<class DirAndParent, class True, class False>
+        struct if_dir;
+
+        template<class Parent, class True, class False>
+        struct if_dir<dir_and_parent<boolean_type<true>, Parent>, True, False>{
+            using type = typename True::type;
+        };
+
+        template<class Parent, class True, class False>
+        struct if_dir<dir_and_parent<boolean_type<false>, Parent>, True, False>{
+            using type = typename False::type;
+        };
+
+        template<class True, class False>
+        struct if_dir<root_of_dir_and_parent, True, False>{
+            using type = root_of_dir_and_parent;
+        };
+
+        template<class Condition, class True, class False>
+        struct if_type;
+
+        template<class True, class False>
+        struct if_type<boolean_type<true>, True, False>{
+            using type = typename True::type;
+        };
+
+        template<class True, class False>
+        struct if_type<boolean_type<false>, True, False>{
+            using type = typename False::type;
+        };
+
+        template<class Type>
+        struct type_identity{
+            using type = Type;
+        };
+
+        template<class Type>
+        struct type_next{
+            using type = typename Type::next;
+        };
+
+        template<class DirAndParent>
+        struct type_parent_trace_rhs{
+            using parent_trace_rhs = typename DirAndParent::parent::trace_rhs;
+            using type = typename if_type<
+                typename parent_trace_rhs::calculated,
+                type_identity<typename DirAndParent::parent::calculation>,
+                type_identity<typename parent_trace_rhs::next>
+            >::type;
+        };
+
+        template<class DirAndParent>
+        struct type_parent_calculation{
+            using type = typename DirAndParent::parent::calculation;
+        };
+
+        template<class Expression, std::size_t Depth = 0, class DirAndParent = root_of_dir_and_parent>
+        struct trace_expression;
+
+        template<class Type, class Op, class L, class R, std::size_t Depth, class DirAndParent>
+        struct trace_expression<binary_expression<Type, Op, L, R, true>, Depth, DirAndParent>{
+            using expression = binary_expression<Type, Op, L, R, true>;
+            using calculated = boolean_type<true>;
+            using next = typename if_dir<
+                DirAndParent,
+                type_parent_trace_rhs<DirAndParent>,
+                type_parent_calculation<DirAndParent>
+            >::type;
+            static const std::size_t depth = Depth;
+        };
+
+        template<class Type, class Op, class L, class R, std::size_t Depth, class DirAndParent>
+        struct trace_expression<binary_expression<Type, Op, L, R, false>, Depth, DirAndParent>{
+            using this_type = trace_expression;
+            using expression = binary_expression<Type, Op, L, R, false>;
+            using parent = typename DirAndParent::parent;
+            using trace_lhs = trace_expression<L, Depth + 1, dir_and_parent<boolean_type<true>, this_type>>;
+            using trace_rhs = trace_expression<R, Depth + 1, dir_and_parent<boolean_type<false>, this_type>>;
+            using calculated = boolean_type<false>;
+            using calculation = trace_expression<binary_expression<Type, Op, L, R, true>, Depth, DirAndParent>;
+            using next = typename if_type<
+                typename trace_lhs::calculated,
+                if_type<
+                    typename trace_rhs::calculated,
+                    type_identity<calculation>,
+                    type_next<trace_rhs>
+                >,
+                type_next<trace_lhs>
+            >::type;
+        };
+
+        template<class Type, std::size_t Depth, class DirAndParent>
+        struct trace_expression<identity_expression<Type>, Depth, DirAndParent>{
+            using expression = identity_expression<Type>;
+            using calculated = boolean_type<true>;
+            using next = typename if_dir<
+                DirAndParent,
+                type_identity<typename DirAndParent::parent::trace_rhs>,
+                type_identity<typename DirAndParent::parent::trace_lhs>
+            >::type;
+        };
+
+    #define CMPXX_AUX_ET_OPERATOR_OVERLOAD(type, op, op_code)               \
+        cmpxx::aux::binary_expression<                                      \
+            type,                                                           \
+            cmpxx::aux::op,                                                 \
+            cmpxx::aux::identity_expression<type>,                          \
+            cmpxx::aux::identity_expression<type>                           \
+        > operator op_code(const type &lhs, const type &rhs){               \
+            return cmpxx::aux::binary_expression<                           \
+                type,                                                       \
+                cmpxx::aux::op,                                             \
+                cmpxx::aux::identity_expression<type>,                      \
+                cmpxx::aux::identity_expression<type>                       \
+            >(lhs, rhs);                                                    \
+        }                                                                   \
+        template<class T>                                                   \
+        cmpxx::aux::binary_expression<                                      \
+            type,                                                           \
+            cmpxx::aux::op,                                                 \
+            cmpxx::aux::identity_expression<type>,                          \
+            T                                                               \
+        > operator op_code(const type &lhs, const T &rhs){                  \
+            return cmpxx::aux::binary_expression<                           \
+                type,                                                       \
+                cmpxx::aux::op,                                             \
+                cmpxx::aux::identity_expression<type>,                      \
+                T                                                           \
+            >(lhs, rhs);                                                    \
+        }                                                                   \
+        template<class T>                                                   \
+        cmpxx::aux::binary_expression<                                      \
+            type,                                                           \
+            cmpxx::aux::op,                                                 \
+            T,                                                              \
+            cmpxx::aux::identity_expression<type>                           \
+        > operator op_code(const T &lhs, const type &rhs){                  \
+            return cmpxx::aux::binary_expression<                           \
+                type,                                                       \
+                cmpxx::aux::op,                                             \
+                T,                                                          \
+                cmpxx::aux::identity_expression<type>                       \
+            >(lhs, rhs);                                                    \
+        }                                                                   \
+        template<class OpT, class OpU, class T, class U, class V, class W>  \
+        cmpxx::aux::binary_expression<                                      \
+            type,                                                           \
+            cmpxx::aux::op,                                                 \
+            cmpxx::aux::binary_expression<type, OpT, T, U>,                 \
+            cmpxx::aux::binary_expression<type, OpU, V, W>                  \
+        > operator op_code(                                                 \
+            const cmpxx::aux::binary_expression<type, OpT, T, U> &lhs,      \
+            const cmpxx::aux::binary_expression<type, OpU, V, W> &rhs       \
+        ){                                                                  \
+            return cmpxx::aux::binary_expression<                           \
+                type,                                                       \
+                cmpxx::aux::op,                                             \
+                cmpxx::aux::binary_expression<type, OpT, T, U>,             \
+                cmpxx::aux::binary_expression<type, OpU, V, W>              \
+            >(lhs, rhs);                                                    \
+        };
+
+
         template<class T>
         inline std::string lexical_cast(const T &value){
             std::string str;
@@ -499,6 +1159,9 @@ namespace cmpxx{
 #include <iterator>
 
 namespace cmpxx{
+    namespace aux{
+    }
+
     template<class Order, class Coefficient, bool CommutativeRing, class Alloc = std::allocator<int>>
     class polynomial{
     private:
@@ -1395,97 +2058,180 @@ namespace cmpxx{
 
 #include <iostream>
 
-void dynamic_link_test(){
-    std::cout << "-------- dynamic link test.\n";
+namespace test{
+    void dynamic_link_test(){
+        std::cout << "-------- dynamic link test.\n";
 
-    try{
-        void *handle = cmpxx::aux::compile(std::string(CMPXX_IMPORT) + "int add(int x, int y){ return x + y; }");
-        typedef int (*func_type)(int x, int y);
-        func_type func = nullptr;
-        func = (func_type)dlsym(handle, "add");
-        std::cout << func(10, 20) << std::endl;
-    }catch(std::runtime_error e){
-        std::cerr << e.what() << std::endl;
-    }
+        try{
+            void *handle = cmpxx::aux::compile(std::string(CMPXX_IMPORT) + "int add(int x, int y){ return x + y; }");
+            typedef int (*func_type)(int x, int y);
+            func_type func = nullptr;
+            func = (func_type)dlsym(handle, "add");
+            std::cout << func(10, 20) << std::endl;
+        }catch(std::runtime_error e){
+            std::cerr << e.what() << std::endl;
+        }
 
-    std::cout << std::endl;
-}
-
-void polynomial_test_1(){
-    std::cout << "-------- commutative ring test.\n";
-
-    typedef cmpxx::polynomial<cmpxx::integer, cmpxx::rational, true> poly;
-    {
-        poly p, q;
-
-        // p = 444x^333 + 222x^111
-        p["111"]("222")["333"]("444");
-        // q = 101x^999 + 888x^777 + 666x^555
-        q["555"]("666")["777"]("888")["999"]("101");
-
-        std::cout << "div.\n";
-        std::cout << "lhs : " << q.get_str() << "\n";
-        std::cout << "rhs : " << p.get_str() << "\n";
-        std::cout << "div : " << (q / p).get_str() << "\n";
-        std::cout << "mod : " << (q % p).get_str() << "\n";
         std::cout << std::endl;
     }
 
-    {
-        poly f, g, s, t;
-        f["3"]("18")["2"]("-42")["1"]("30")["0"]("-6");
-        g["2"]("-12")["1"]("10")["0"]("-2");
-        std::cout << "eea.\n";
-        std::cout << "lhs : " << f << "\n";
-        std::cout << "rhs : " << g << "\n";
-        std::cout << "eea : " << poly::eea(s, t, f, g) << "\n";
-        std::cout << "s   : " << s << "\n";
-        std::cout << "t   : " << t << "\n";
-        std::cout << "eea : " << (s * f + t * g) << "\n";
+    void polynomial_test_1(){
+        std::cout << "-------- commutative ring test.\n";
+
+        typedef cmpxx::polynomial<cmpxx::integer, cmpxx::rational, true> poly;
+        {
+            poly p, q;
+
+            // p = 444x^333 + 222x^111
+            p["111"]("222")["333"]("444");
+            // q = 101x^999 + 888x^777 + 666x^555
+            q["555"]("666")["777"]("888")["999"]("101");
+
+            std::cout << "div.\n";
+            std::cout << "lhs : " << q.get_str() << "\n";
+            std::cout << "rhs : " << p.get_str() << "\n";
+            std::cout << "div : " << (q / p).get_str() << "\n";
+            std::cout << "mod : " << (q % p).get_str() << "\n";
+            std::cout << std::endl;
+        }
+
+        {
+            poly f, g, s, t;
+            f["3"]("18")["2"]("-42")["1"]("30")["0"]("-6");
+            g["2"]("-12")["1"]("10")["0"]("-2");
+            std::cout << "eea.\n";
+            std::cout << "lhs : " << f << "\n";
+            std::cout << "rhs : " << g << "\n";
+            std::cout << "eea : " << poly::eea(s, t, f, g) << "\n";
+            std::cout << "s   : " << s << "\n";
+            std::cout << "t   : " << t << "\n";
+            std::cout << "eea : " << (s * f + t * g) << "\n";
+            std::cout << std::endl;
+        }
+
+        {
+            poly f, g, s, t;
+            f["3"]("18")["2"]("-42")["1"]("30")["0"]("-6");
+            g["2"]("-12")["1"]("10")["0"]("-2");
+            std::cout << "eea.\n";
+            std::cout << "lhs : " << f << "\n";
+            std::cout << "rhs : " << g << "\n";
+            std::cout << "eea : " << poly::classical_eea(s, t, f, g) << "\n";
+            std::cout << "s   : " << s << "\n";
+            std::cout << "t   : " << t << "\n";
+            std::cout << "eea : " << (s * f + t * g) << "\n";
+            std::cout << std::endl;
+        }
+
         std::cout << std::endl;
     }
 
-    {
-        poly f, g, s, t;
-        f["3"]("18")["2"]("-42")["1"]("30")["0"]("-6");
-        g["2"]("-12")["1"]("10")["0"]("-2");
-        std::cout << "eea.\n";
-        std::cout << "lhs : " << f << "\n";
-        std::cout << "rhs : " << g << "\n";
-        std::cout << "eea : " << poly::classical_eea(s, t, f, g) << "\n";
-        std::cout << "s   : " << s << "\n";
-        std::cout << "t   : " << t << "\n";
-        std::cout << "eea : " << (s * f + t * g) << "\n";
+    void polynomial_test_2(){
+        std::cout << "-------- non-commutative ring test.\n";
+
+        typedef cmpxx::polynomial<cmpxx::integer, cmpxx::integer, false> poly;
+        poly f = 126, g = 35;
+        std::cout << "gcd(" << f.get_str() << ", " << g.get_str() << ") = " << poly::classical_gcd(f, g).get_str() << "\n";
+        std::cout << std::endl;
+
+        {
+            poly s, t;
+            std::cout << "eea : " << poly::classical_eea(s, t, 126, 35) << "\n";
+            std::cout << "s   : " << s << "\n";
+            std::cout << "t   : " << t << "\n";
+            std::cout << "eea : " << (s * 126 + t * 35) << "\n";
+            std::cout << std::endl;
+        }
+
         std::cout << std::endl;
     }
 
-    std::cout << std::endl;
-}
+    struct test_type{
+        test_type() : value(0){}
 
-void polynomial_test_2(){
-    std::cout << "-------- non-commutative ring test.\n";
+        template<class Operator, class L, class R>
+        test_type(const cmpxx::aux::binary_expression<test_type, Operator, L, R> &expression) :
+            value()
+        { expression.eval(*this); }
 
-    typedef cmpxx::polynomial<cmpxx::integer, cmpxx::integer, false> poly;
-    poly f = 126, g = 35;
-    std::cout << "gcd(" << f.get_str() << ", " << g.get_str() << ") = " << poly::classical_gcd(f, g).get_str() << "\n";
-    std::cout << std::endl;
+        template<class Operator, class L, class R>
+        test_type &operator =(const cmpxx::aux::binary_expression<test_type, Operator, L, R> &expression){
+            expression.eval(*this);
+            return *this;
+        }
 
-    {
-        poly s, t;
-        std::cout << "eea : " << poly::classical_eea(s, t, 126, 35) << "\n";
-        std::cout << "s   : " << s << "\n";
-        std::cout << "t   : " << t << "\n";
-        std::cout << "eea : " << (s * 126 + t * 35) << "\n";
+        test_type &operator =(const test_type &rhs){
+            value = rhs.value;
+            return *this;
+        }
+
+        test_type &operator +=(const test_type &rhs){
+            value += rhs.value;
+            return *this;
+        }
+
+        test_type &operator -=(const test_type &rhs){
+            value -= rhs.value;
+            return *this;
+        }
+
+        test_type &operator *=(const test_type &rhs){
+            value *= rhs.value;
+            return *this;
+        }
+
+        test_type &operator /=(const test_type &rhs){
+            value /= rhs.value;
+            return *this;
+        }
+
+        double value;
+    };
+
+    CMPXX_AUX_ET_OPERATOR_OVERLOAD(test_type, exp_operator_add<>, +);
+    CMPXX_AUX_ET_OPERATOR_OVERLOAD(test_type, exp_operator_mul<>, *);
+    CMPXX_AUX_ET_OPERATOR_OVERLOAD(test_type, exp_operator_sub<>, -);
+    CMPXX_AUX_ET_OPERATOR_OVERLOAD(test_type, exp_operator_div<>, /);
+
+    void expression_template_test(){
+        std::cout << "-------- expression template test.\n";
+
+        {
+            test_type x_1, x_2, y, z, w;
+            x_1.value = 200, x_2.value = 100, y.value = 5, z.value = 0.1;
+            w = x_1 - y / z - x_2 + (y * z);
+            std::cout << "x_1 - y / z - x_2 = " << w.value << std::endl;
+        }
         std::cout << std::endl;
-    }
 
-    std::cout << std::endl;
+        {
+            test_type a;
+            {
+                using expression = cmpxx::aux::trace_expression<decltype(a + a * a - a)>;
+                using next_1 = expression::next;
+                using next_2 = next_1::next;
+                using next_3 = next_2::next;
+            }
+
+            {
+                using expression = cmpxx::aux::trace_expression<decltype((a * a + a / a) - (a / a - a * a))>;
+                using next_1 = expression::next;
+                using next_2 = next_1::next;
+                using next_3 = next_2::next;
+                using next_4 = next_3::next;
+                using next_5 = next_4::next;
+                using next_6 = next_5::next;
+                using next_7 = next_6::next;
+            }
+        }
+    }
 }
 
 int main(int argc, char *argv[]){
-    polynomial_test_1();
-    polynomial_test_2();
-    dynamic_link_test();
+    test::expression_template_test();
+    test::polynomial_test_1();
+    test::polynomial_test_2();
+    test::dynamic_link_test();
 
     return 0;
 }
