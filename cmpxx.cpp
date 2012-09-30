@@ -55,8 +55,8 @@ namespace cmpxx{
             static const bool commutative = Commutative;
             static const std::size_t operand_num = 2;
 
-            template<class T>
-            inline static T &apply(T &target, const T &operand){
+            template<class T, class U>
+            inline static T &apply(T &target, const U &operand){
                 target = operand;
                 return target;
             }
@@ -67,8 +67,8 @@ namespace cmpxx{
             static const bool commutative = Commutative;
             static const std::size_t operand_num = 2;
 
-            template<class T>
-            inline static T &apply(T &target, const T &operand){
+            template<class T, class U>
+            inline static T &apply(T &target, const U &operand){
                 target += operand;
                 return target;
             }
@@ -79,8 +79,8 @@ namespace cmpxx{
             static const bool commutative = Commutative;
             static const std::size_t operand_num = 2;
 
-            template<class T>
-            inline static T &apply(T &target, const T &operand){
+            template<class T, class U>
+            inline static T &apply(T &target, const U &operand){
                 target -= operand;
                 return target;
             }
@@ -91,8 +91,8 @@ namespace cmpxx{
             static const bool commutative = Commutative;
             static const std::size_t operand_num = 2;
 
-            template<class T>
-            inline static T &apply(T &target, const T &operand){
+            template<class T, class U>
+            inline static T &apply(T &target, const U &operand){
                 target *= operand;
                 return target;
             }
@@ -103,8 +103,8 @@ namespace cmpxx{
             static const bool commutative = Commutative;
             static const std::size_t operand_num = 2;
 
-            template<class T>
-            inline static T &apply(T &target, const T &operand){
+            template<class T, class U>
+            inline static T &apply(T &target, const U &operand){
                 target /= operand;
                 return target;
             }
@@ -115,8 +115,8 @@ namespace cmpxx{
             static const bool commutative = Commutative;
             static const std::size_t operand_num = 2;
 
-            template<class T>
-            inline static T &apply(T &target, const T &operand){
+            template<class T, class U>
+            inline static T &apply(T &target, const U &operand){
                 target %= operand;
                 return target;
             }
@@ -151,8 +151,8 @@ namespace cmpxx{
             static const bool commutative = Commutative;
             static const std::size_t operand_num = 2;
 
-            template<class T>
-            inline static T &apply(T &target, const T &operand){
+            template<class T, class U>
+            inline static T &apply(T &target, const U &operand){
                 target &= operand;
                 return target;
             }
@@ -163,8 +163,8 @@ namespace cmpxx{
             static const bool commutative = Commutative;
             static const std::size_t operand_num = 2;
 
-            template<class T>
-            inline static T &apply(T &target, const T &operand){
+            template<class T, class U>
+            inline static T &apply(T &target, const U &operand){
                 target |= operand;
                 return target;
             }
@@ -175,8 +175,8 @@ namespace cmpxx{
             static const bool commutative = Commutative;
             static const std::size_t operand_num = 2;
 
-            template<class T>
-            inline static T &apply(T &target, const T &operand){
+            template<class T, class U>
+            inline static T &apply(T &target, const U &operand){
                 target ^= operand;
                 return target;
             }
@@ -333,20 +333,11 @@ namespace cmpxx{
         struct specialized_evaluator;
 
         template<class Operator, bool Commutative, bool Reverse>
-        struct specialized_evaluator<Operator, Commutative, Reverse, 1>{
-            template<class T>
-            inline static decltype(Operator::apply(T())) &eval(T &target){
-                return Operator::apply(target);
-            }
-        };
-
-        template<class Operator, bool Commutative, bool Reverse>
         struct specialized_evaluator<Operator, Commutative, Reverse, 2>{
-             template<class T>
-            inline static void eval(T &target, const T &operand){
+             template<class T, class U>
+            inline static void eval(T &target, const U &operand){
                 Operator::apply(target, operand);
             }
-
         };
 
         template<class Type>
@@ -430,6 +421,136 @@ namespace cmpxx{
             const lhs &lhs_;
             const rhs &rhs_;
         };
+
+        #define CMPXX_AUX_ET_OPERATOR_OVERLOAD_TYPE_BUILT_IN_TYPE(op, e, r, built_in_type)                  \
+            template<class Type, class BinaryOp, bool Calculated>                                           \
+            struct binary_expression<Type, BinaryOp, identity_expression<Type>, built_in_type, Calculated>{ \
+                using type = Type;                                                                          \
+                using binary_operator = BinaryOp;                                                           \
+                using lhs = type;                                                                           \
+                using rhs = built_in_type;                                                                  \
+                static const bool calculated = Calculated;                                                  \
+                inline binary_expression(const lhs &lhs_a, const rhs &rhs_a) :                              \
+                    lhs_(lhs_a), rhs_(rhs_a)                                                                \
+                {}                                                                                          \
+                inline binary_expression(const binary_expression &other) :                                  \
+                    lhs_(other.lhs_), rhs_(other.rhs_)                                                      \
+                {}                                                                                          \
+                inline void eval(type &result) const{                                                       \
+                    result = lhs_;                                                                          \
+                    specialized_evaluator<                                                                  \
+                        binary_operator,                                                                    \
+                        binary_operator::commutative,                                                       \
+                        false,                                                                              \
+                        binary_operator::operand_num                                                        \
+                    >::eval(result, rhs_);                                                                  \
+                }                                                                                           \
+                const lhs &lhs_;                                                                            \
+                const rhs &rhs_;                                                                            \
+            };                                                                                              \
+            template<class Type, class BinaryOp, bool Calculated>                                           \
+            struct binary_expression<Type, BinaryOp, built_in_type, identity_expression<Type>, Calculated>{ \
+                using type = Type;                                                                          \
+                using binary_operator = BinaryOp;                                                           \
+                using lhs = built_in_type;                                                                  \
+                using rhs = type;                                                                           \
+                static const bool calculated = Calculated;                                                  \
+                inline binary_expression(const lhs &lhs_a, const rhs &rhs_a) :                              \
+                    lhs_(lhs_a), rhs_(rhs_a)                                                                \
+                {}                                                                                          \
+                inline binary_expression(const binary_expression &other) :                                  \
+                    lhs_(other.lhs_), rhs_(other.rhs_)                                                      \
+                {}                                                                                          \
+                inline void eval(type &result) const{                                                       \
+                    result = lhs_;                                                                          \
+                    specialized_evaluator<                                                                  \
+                        binary_operator,                                                                    \
+                        binary_operator::commutative,                                                       \
+                        false,                                                                              \
+                        binary_operator::operand_num                                                        \
+                    >::eval(result, rhs_);                                                                  \
+                }                                                                                           \
+                const lhs &lhs_;                                                                            \
+                const rhs &rhs_;                                                                            \
+            };                                                                                              \
+            template<                                                                                       \
+                class Type,                                                                                 \
+                class BinaryOp,                                                                             \
+                class OBinaryOp,                                                                            \
+                class OL,                                                                                   \
+                class OR,                                                                                   \
+                bool OCalc,                                                                                 \
+                bool Calculated                                                                             \
+            > struct binary_expression<                                                                     \
+                Type,                                                                                       \
+                BinaryOp,                                                                                   \
+                binary_expression<Type, OBinaryOp, OL, OR, OCalc>,                                          \
+                built_in_type,                                                                              \
+                Calculated                                                                                  \
+            >{                                                                                              \
+                using type = Type;                                                                          \
+                using binary_operator = BinaryOp;                                                           \
+                using lhs = binary_expression<Type, OBinaryOp, OL, OR, OCalc>;                              \
+                using rhs = built_in_type;                                                                  \
+                static const bool calculated = Calculated;                                                  \
+                inline binary_expression(const lhs &lhs_a, const rhs &rhs_a) :                              \
+                    lhs_(lhs_a), rhs_(rhs_a)                                                                \
+                {}                                                                                          \
+                inline binary_expression(const binary_expression &other) :                                  \
+                    lhs_(other.lhs_), rhs_(other.rhs_)                                                      \
+                {}                                                                                          \
+                inline void eval(type &result) const{                                                       \
+                    result = lhs_;                                                                          \
+                    specialized_evaluator<                                                                  \
+                        binary_operator,                                                                    \
+                        binary_operator::commutative,                                                       \
+                        false,                                                                              \
+                        binary_operator::operand_num                                                        \
+                    >::eval(result, rhs_);                                                                  \
+                }                                                                                           \
+                const lhs &lhs_;                                                                            \
+                const rhs &rhs_;                                                                            \
+            };                                                                                              \
+            template<                                                                                       \
+                class Type,                                                                                 \
+                class BinaryOp,                                                                             \
+                class OBinaryOp,                                                                            \
+                class OL,                                                                                   \
+                class OR,                                                                                   \
+                bool OCalc,                                                                                 \
+                bool Calculated                                                                             \
+            > struct binary_expression<                                                                     \
+                Type,                                                                                       \
+                BinaryOp,                                                                                   \
+                built_in_type,                                                                              \
+                binary_expression<Type, OBinaryOp, OL, OR, OCalc>,                                          \
+                Calculated                                                                                  \
+            >{                                                                                              \
+                using type = Type;                                                                          \
+                using binary_operator = BinaryOp;                                                           \
+                using lhs = binary_expression<Type, OBinaryOp, OL, OR, OCalc>;                              \
+                using rhs = built_in_type;                                                                  \
+                static const bool calculated = Calculated;                                                  \
+                inline binary_expression(const lhs &lhs_a, const rhs &rhs_a) :                              \
+                    lhs_(lhs_a), rhs_(rhs_a)                                                                \
+                {}                                                                                          \
+                inline binary_expression(const binary_expression &other) :                                  \
+                    lhs_(other.lhs_), rhs_(other.rhs_)                                                      \
+                {}                                                                                          \
+                inline void eval(type &result) const{                                                       \
+                    lhs_.eval(result);                                                                      \
+                    specialized_evaluator<                                                                  \
+                        binary_operator,                                                                    \
+                        binary_operator::commutative,                                                       \
+                        false,                                                                              \
+                        binary_operator::operand_num                                                        \
+                    >::eval(result, rhs_);                                                                  \
+                }                                                                                           \
+                const lhs &lhs_;                                                                            \
+                const rhs &rhs_;                                                                            \
+            };
+
+        CMPXX_INVOKE_MACRO_WITH_BUILT_IN_TYPE(CMPXX_AUX_ET_OPERATOR_OVERLOAD_TYPE_BUILT_IN_TYPE, nil, nil, nil);
 
         template<class Type, class BinaryOp, class R, bool Calculated>
         struct binary_expression<Type, BinaryOp, identity_expression<Type>, R, Calculated>{
@@ -635,66 +756,109 @@ namespace cmpxx{
             >::type;
         };
 
-    #define CMPXX_AUX_ET_OPERATOR_OVERLOAD(type, op, op_code)               \
-        cmpxx::aux::binary_expression<                                      \
-            type,                                                           \
-            cmpxx::aux::op,                                                 \
-            cmpxx::aux::identity_expression<type>,                          \
-            cmpxx::aux::identity_expression<type>                           \
-        > operator op_code(const type &lhs, const type &rhs){               \
-            return cmpxx::aux::binary_expression<                           \
-                type,                                                       \
-                cmpxx::aux::op,                                             \
-                cmpxx::aux::identity_expression<type>,                      \
-                cmpxx::aux::identity_expression<type>                       \
-            >(lhs, rhs);                                                    \
-        }                                                                   \
-        template<class T>                                                   \
-        cmpxx::aux::binary_expression<                                      \
-            type,                                                           \
-            cmpxx::aux::op,                                                 \
-            cmpxx::aux::identity_expression<type>,                          \
-            T                                                               \
-        > operator op_code(const type &lhs, const T &rhs){                  \
-            return cmpxx::aux::binary_expression<                           \
-                type,                                                       \
-                cmpxx::aux::op,                                             \
-                cmpxx::aux::identity_expression<type>,                      \
-                T                                                           \
-            >(lhs, rhs);                                                    \
-        }                                                                   \
-        template<class T>                                                   \
-        cmpxx::aux::binary_expression<                                      \
-            type,                                                           \
-            cmpxx::aux::op,                                                 \
-            T,                                                              \
-            cmpxx::aux::identity_expression<type>                           \
-        > operator op_code(const T &lhs, const type &rhs){                  \
-            return cmpxx::aux::binary_expression<                           \
-                type,                                                       \
-                cmpxx::aux::op,                                             \
-                T,                                                          \
-                cmpxx::aux::identity_expression<type>                       \
-            >(lhs, rhs);                                                    \
-        }                                                                   \
-        template<class OpT, class OpU, class T, class U, class V, class W>  \
-        cmpxx::aux::binary_expression<                                      \
-            type,                                                           \
-            cmpxx::aux::op,                                                 \
-            cmpxx::aux::binary_expression<type, OpT, T, U>,                 \
-            cmpxx::aux::binary_expression<type, OpU, V, W>                  \
-        > operator op_code(                                                 \
-            const cmpxx::aux::binary_expression<type, OpT, T, U> &lhs,      \
-            const cmpxx::aux::binary_expression<type, OpU, V, W> &rhs       \
-        ){                                                                  \
-            return cmpxx::aux::binary_expression<                           \
-                type,                                                       \
-                cmpxx::aux::op,                                             \
-                cmpxx::aux::binary_expression<type, OpT, T, U>,             \
-                cmpxx::aux::binary_expression<type, OpU, V, W>              \
-            >(lhs, rhs);                                                    \
-        };
+    #define CMPXX_AUX_ET_OPERATOR_OVERLOAD_BUILT_IN_TYPE(op, op_code, type, built_in_type)  \
+            template<class Op, class T, class U>                                            \
+            cmpxx::aux::binary_expression<                                                  \
+                type,                                                                       \
+                cmpxx::aux::op,                                                             \
+                cmpxx::aux::binary_expression<type, Op, T, U>,                              \
+                built_in_type                                                               \
+            > operator op_code(                                                             \
+                const cmpxx::aux::binary_expression<type, Op, T, U> &lhs,                   \
+                const built_in_type &rhs                                                    \
+            ){                                                                              \
+                return cmpxx::aux::binary_expression<                                       \
+                    type,                                                                   \
+                    cmpxx::aux::op,                                                         \
+                    cmpxx::aux::binary_expression<type, Op, T, U>,                          \
+                    built_in_type                                                           \
+                >(lhs, rhs);                                                                \
+            }                                                                               \
+            template<class Op, class T, class U>                                            \
+            cmpxx::aux::binary_expression<                                                  \
+                type,                                                                       \
+                cmpxx::aux::op,                                                             \
+                built_in_type,                                                              \
+                cmpxx::aux::binary_expression<type, Op, T, U>                               \
+            > operator op_code(                                                             \
+                const built_in_type &lhs,                                                   \
+                const cmpxx::aux::binary_expression<type, Op, T, U> &rhs                    \
+            ){                                                                              \
+                return cmpxx::aux::binary_expression<                                       \
+                    type,                                                                   \
+                    cmpxx::aux::op,                                                         \
+                    built_in_type,                                                          \
+                    cmpxx::aux::binary_expression<type, Op, T, U>                           \
+                >(lhs, rhs);                                                                \
+            }
 
+
+        #define CMPXX_AUX_ET_OPERATOR_OVERLOAD(type, op, op_code)               \
+            cmpxx::aux::binary_expression<                                      \
+                type,                                                           \
+                cmpxx::aux::op,                                                 \
+                cmpxx::aux::identity_expression<type>,                          \
+                cmpxx::aux::identity_expression<type>                           \
+            > operator op_code(const type &lhs, const type &rhs){               \
+                return cmpxx::aux::binary_expression<                           \
+                    type,                                                       \
+                    cmpxx::aux::op,                                             \
+                    cmpxx::aux::identity_expression<type>,                      \
+                    cmpxx::aux::identity_expression<type>                       \
+                >(lhs, rhs);                                                    \
+            }                                                                   \
+            template<class Op, class T, class U>                                \
+            cmpxx::aux::binary_expression<                                      \
+                type,                                                           \
+                cmpxx::aux::op,                                                 \
+                cmpxx::aux::identity_expression<type>,                          \
+                cmpxx::aux::binary_expression<type, Op, T, U>                   \
+            > operator op_code(                                                 \
+                const type &lhs,                                                \
+                const cmpxx::aux::binary_expression<type, Op, T, U> &rhs        \
+            ){                                                                  \
+                return cmpxx::aux::binary_expression<                           \
+                    type,                                                       \
+                    cmpxx::aux::op,                                             \
+                    cmpxx::aux::identity_expression<type>,                      \
+                    cmpxx::aux::binary_expression<type, Op, T, U>               \
+                >(lhs, rhs);                                                    \
+            }                                                                   \
+            template<class Op, class T, class U>                                \
+            cmpxx::aux::binary_expression<                                      \
+                type,                                                           \
+                cmpxx::aux::op,                                                 \
+                cmpxx::aux::binary_expression<type, Op, T, U>,                  \
+                cmpxx::aux::identity_expression<type>                           \
+            > operator op_code(                                                 \
+                const cmpxx::aux::binary_expression<type, Op, T, U> &lhs,       \
+                const type &rhs                                                 \
+            ){                                                                  \
+                return cmpxx::aux::binary_expression<                           \
+                    type,                                                       \
+                    cmpxx::aux::op,                                             \
+                    cmpxx::aux::binary_expression<type, Op, T, U>,              \
+                    cmpxx::aux::identity_expression<type>                       \
+                >(lhs, rhs);                                                    \
+            }                                                                   \
+            template<class OpT, class OpU, class T, class U, class V, class W>  \
+            cmpxx::aux::binary_expression<                                      \
+                type,                                                           \
+                cmpxx::aux::op,                                                 \
+                cmpxx::aux::binary_expression<type, OpT, T, U>,                 \
+                cmpxx::aux::binary_expression<type, OpU, V, W>                  \
+            > operator op_code(                                                 \
+                const cmpxx::aux::binary_expression<type, OpT, T, U> &lhs,      \
+                const cmpxx::aux::binary_expression<type, OpU, V, W> &rhs       \
+            ){                                                                  \
+                return cmpxx::aux::binary_expression<                           \
+                    type,                                                       \
+                    cmpxx::aux::op,                                             \
+                    cmpxx::aux::binary_expression<type, OpT, T, U>,             \
+                    cmpxx::aux::binary_expression<type, OpU, V, W>              \
+                >(lhs, rhs);                                                    \
+            }                                                                   \
+            CMPXX_INVOKE_MACRO_WITH_BUILT_IN_TYPE(CMPXX_AUX_ET_OPERATOR_OVERLOAD_BUILT_IN_TYPE, op, op_code, type)
 
         template<class T>
         inline std::string lexical_cast(const T &value){
@@ -2165,6 +2329,11 @@ namespace test{
             return *this;
         }
 
+        test_type &operator +=(double v){
+            value += v;
+            return *this;
+        }
+
         test_type &operator +=(const test_type &rhs){
             value += rhs.value;
             return *this;
@@ -2199,8 +2368,8 @@ namespace test{
         {
             test_type x_1, x_2, y, z, w;
             x_1.value = 200, x_2.value = 100, y.value = 5, z.value = 0.1;
-            w = x_1 - y / z - x_2 + (y * z);
-            std::cout << "x_1 - y / z - x_2 = " << w.value << std::endl;
+            w = x_1 - y / z - x_2 + y * z + 0.5;
+            std::cout << "x_1 - y / z - x_2 + y * z + 0.5 = " << w.value << std::endl;
         }
         std::cout << std::endl;
 
