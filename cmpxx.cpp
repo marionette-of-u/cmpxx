@@ -3,6 +3,7 @@
 #include <iostream>
 #include <string>
 #include <typeinfo>
+#include <cstdio>
 #include <cxxabi.h>
 
 // caution!! memory leaks!!
@@ -38,17 +39,17 @@ namespace cmpxx{
     macro(__VA_ARGS__, long double);
 
 #define CMPXX_INVOKE_MACRO_WITH_S_U_D_LD(s, u, d, ld, ...)  \
-    s(__VA_ARGS__, signed char)                             \
-    u(__VA_ARGS__, unsigned char)                           \
-    s(__VA_ARGS__, signed int)                              \
-    u(__VA_ARGS__, unsigned int)                            \
-    s(__VA_ARGS__, signed short int)                        \
-    u(__VA_ARGS__, unsigned short int)                      \
-    s(__VA_ARGS__, signed long int)                         \
-    u(__VA_ARGS__, unsigned long int)                       \
-    d(__VA_ARGS__, float)                                   \
-    d(__VA_ARGS__, double)                                  \
-    ld(__VA_ARGS__, long double)
+    s(__VA_ARGS__, signed char);                            \
+    u(__VA_ARGS__, unsigned char);                          \
+    s(__VA_ARGS__, signed int);                             \
+    u(__VA_ARGS__, unsigned int);                           \
+    s(__VA_ARGS__, signed short int);                       \
+    u(__VA_ARGS__, unsigned short int);                     \
+    s(__VA_ARGS__, signed long int);                        \
+    u(__VA_ARGS__, unsigned long int);                      \
+    d(__VA_ARGS__, float);                                  \
+    d(__VA_ARGS__, double);                                 \
+    ld(__VA_ARGS__, long double);
 
 namespace cmpxx{
     namespace aux{
@@ -271,7 +272,7 @@ namespace cmpxx{
             static const std::size_t operand_num = 2;
 
             template<class T, class U>
-            inline static bool apply(const T &target, const U &operand){
+            inline static bool apply(T &target, const U &operand){
                 return LessFunctor()(target, operand);
             }
         };
@@ -282,7 +283,7 @@ namespace cmpxx{
             static const std::size_t operand_num = 2;
 
             template<class T, class U>
-            inline static bool apply(const T &target, const U &operand){
+            inline static bool apply(T &target, const U &operand){
                 return GreaterFunctor()(target, operand);
             }
         };
@@ -293,7 +294,7 @@ namespace cmpxx{
             static const std::size_t operand_num = 2;
 
             template<class T, class U>
-            inline static bool apply(const T &target, const U &operand){
+            inline static bool apply(T &target, const U &operand){
                 return LessEqualFunctor()(target, operand);
             }
         };
@@ -304,7 +305,7 @@ namespace cmpxx{
             static const std::size_t operand_num = 2;
 
             template<class T, class U>
-            inline static bool apply(const T &target, const U &operand){
+            inline static bool apply(T &target, const U &operand){
                 return GreaterEqualFunctor()(target, operand);
             }
         };
@@ -315,7 +316,7 @@ namespace cmpxx{
             static const std::size_t operand_num = 2;
 
             template<class T, class U>
-            inline static bool apply(const T &target, const U &operand){
+            inline static bool apply(T &target, const U &operand){
                 return EqualFunctor()(target, operand);
             }
         };
@@ -326,7 +327,7 @@ namespace cmpxx{
             static const std::size_t operand_num = 2;
 
             template<class T, class U>
-            inline static bool apply(const T &target, const U &operand){
+            inline static bool apply(T &target, const U &operand){
                 return NotEqualFunctor()(target, operand);
             }
         };
@@ -415,7 +416,7 @@ namespace cmpxx{
                     binary_operator::commutative,
                     false,
                     binary_operator::operand_num
-                >::eval(result, rhs);
+                >::eval(result, result);
             }
 
             const lhs &lhs_;
@@ -1753,8 +1754,12 @@ namespace cmpxx{
 #include <iterator>
 
 namespace cmpxx{
-    namespace aux{
-    }
+    CMPXX_AUX_GENERATE_TMP_TMP_PARAM_ET(
+        polynomial,
+        (class Order, class Coefficient, bool CommutativeRing, class Alloc),
+        (Order, Coefficient, CommutativeRing, Alloc),
+        (class, class, bool , class)
+    );
 
     template<class Order, class Coefficient, bool CommutativeRing, class Alloc = std::allocator<int>>
     class polynomial{
@@ -1876,12 +1881,20 @@ namespace cmpxx{
             container()
         { if(coe != 0){ container.insert(typename ordered_container::value_type(0, coe)); } }
 
-        #define CMPXX_POLYNOMIAL_CTOR(op, e, r, type) \
-            inline polynomial(type value) :           \
-                container()                           \
+        template<template<class, class, bool, class> class Other, class Op, class L, class R, bool Calculated>
+        inline polynomial(
+            const expression_template_polynomial<
+                Other, Order, Coefficient, CommutativeRing, Alloc,
+                Op, L, R, Calculated
+            > &expression
+        ) : container(){ expression.eval(*this); }
+
+        #define CMPXX_POLYNOMIAL_CTOR(nil, type) \
+            inline polynomial(type value) :      \
+                container()                      \
             { if(value != 0){ container.insert(typename ordered_container::ref_value_type(0, coefficient(value))); } }
 
-        CMPXX_INVOKE_MACRO_WITH_BUILT_IN_TYPE(CMPXX_POLYNOMIAL_CTOR, nil, nil, nil);
+        CMPXX_INVOKE_MACRO_WITH_BUILT_IN_TYPE(CMPXX_POLYNOMIAL_CTOR, nil);
 
     private:
         inline polynomial(const ordered_container &container_) :
@@ -1891,8 +1904,7 @@ namespace cmpxx{
         inline polynomial(
             const typename basic_ordered_container::const_iterator &first,
             const typename basic_ordered_container::const_iterator last
-        ) : container(first, last)
-        {}
+        ) : container(first, last){}
 
     public:
         inline ~polynomial(){}
@@ -1908,6 +1920,84 @@ namespace cmpxx{
 
         inline polynomial &operator =(polynomial &&other){
             swap_ordered_container(other);
+            return *this;
+        }
+
+        template<template<class, class, bool, class> class Other, class Op, class L, class R, bool Calculated>
+        inline polynomial &operator =(
+            const expression_template_polynomial<
+                Other, Order, Coefficient, CommutativeRing, Alloc,
+                Op, L, R, Calculated
+            > &expression
+        ){
+            polynomial temp;
+            expression.eval(temp);
+            *this = std::move(temp);
+            return *this;
+        }
+
+        template<template<class, class, bool, class> class Other, class Op, class L, class R, bool Calculated>
+        inline polynomial &operator +=(
+            const expression_template_polynomial<
+                Other, Order, Coefficient, CommutativeRing, Alloc,
+                Op, L, R, Calculated
+            > &expression
+        ){
+            polynomial temp;
+            expression.eval(temp);
+            *this += temp;
+            return *this;
+        }
+
+        template<template<class, class, bool, class> class Other, class Op, class L, class R, bool Calculated>
+        inline polynomial &operator -=(
+            const expression_template_polynomial<
+                Other, Order, Coefficient, CommutativeRing, Alloc,
+                Op, L, R, Calculated
+            > &expression
+        ){
+            polynomial temp;
+            expression.eval(temp);
+            *this -= temp;
+            return *this;
+        }
+
+        template<template<class, class, bool, class> class Other, class Op, class L, class R, bool Calculated>
+        inline polynomial &operator *=(
+            const expression_template_polynomial<
+                Other, Order, Coefficient, CommutativeRing, Alloc,
+                Op, L, R, Calculated
+            > &expression
+        ){
+            polynomial temp;
+            expression.eval(temp);
+            *this *= temp;
+            return *this;
+        }
+
+        template<template<class, class, bool, class> class Other, class Op, class L, class R, bool Calculated>
+        inline polynomial &operator /=(
+            const expression_template_polynomial<
+                Other, Order, Coefficient, CommutativeRing, Alloc,
+                Op, L, R, Calculated
+            > &expression
+        ){
+            polynomial temp;
+            expression.eval(temp);
+            *this /= temp;
+            return *this;
+        }
+
+        template<template<class, class, bool, class> class Other, class Op, class L, class R, bool Calculated>
+        inline polynomial &operator %=(
+            const expression_template_polynomial<
+                Other, Order, Coefficient, CommutativeRing, Alloc,
+                Op, L, R, Calculated
+            > &expression
+        ){
+            polynomial temp;
+            expression.eval(temp);
+            *this %= temp;
             return *this;
         }
 
@@ -1991,7 +2081,7 @@ namespace cmpxx{
         }
 
         inline polynomial &operator *=(const polynomial &rhs){
-            // *this = kar_mul_impl(*this, rhs);
+            //*this = kar_mul_impl(*this, rhs);
             *this = square_mul(*this, rhs);
             return *this;
         }
@@ -2174,7 +2264,6 @@ namespace cmpxx{
                 s_1 = 0,
                 t_0 = 0,
                 t_1 = polynomial(1) / rhs.lc();
-            int counter = 0;
             while(!r_1.container.empty()){
                 polynomial q = r_0 / r_1, rho = r_0 - q * r_1, r_m = r_1, s_m = s_1, t_m = t_1;
                 rho.lu();
@@ -2489,16 +2578,6 @@ namespace cmpxx{
         inline polynomial<Order, Coefficient, CommutativeRing, Alloc>               \
         operator op(                                                                \
             const polynomial<Order, Coefficient, CommutativeRing, Alloc> &l,        \
-            const polynomial<Order, Coefficient, CommutativeRing, Alloc> &r         \
-        ){                                                                          \
-            polynomial<Order, Coefficient, CommutativeRing, Alloc> ret(l);          \
-            ret a_op r;                                                             \
-            return ret;                                                             \
-        }                                                                           \
-        template<class Order, class Coefficient, bool CommutativeRing, class Alloc> \
-        inline polynomial<Order, Coefficient, CommutativeRing, Alloc>               \
-        operator op(                                                                \
-            const polynomial<Order, Coefficient, CommutativeRing, Alloc> &l,        \
             const Coefficient &r                                                    \
         ){                                                                          \
             polynomial<Order, Coefficient, CommutativeRing, Alloc> ret(l);          \
@@ -2543,6 +2622,51 @@ namespace cmpxx{
     CMPXX_POLYNOMIAL_OPERATOR_OVERLOAD(*, *=);
     CMPXX_POLYNOMIAL_OPERATOR_OVERLOAD(/, /=);
     CMPXX_POLYNOMIAL_OPERATOR_OVERLOAD(%, %=);
+
+    CMPXX_AUX_TMP_TMP_ET_OPERATOR_OVERLOAD(
+        polynomial,
+        (class Order, class Coefficient, bool CommutativeRing, class Alloc),
+        (Order, Coefficient, CommutativeRing, Alloc),
+        (class, class, bool, class),
+        exp_operator_add<>,
+        +
+    );
+
+    CMPXX_AUX_TMP_TMP_ET_OPERATOR_OVERLOAD(
+        polynomial,
+        (class Order, class Coefficient, bool CommutativeRing, class Alloc),
+        (Order, Coefficient, CommutativeRing, Alloc),
+        (class, class, bool, class),
+        exp_operator_sub<>,
+        -
+    );
+
+    CMPXX_AUX_TMP_TMP_ET_OPERATOR_OVERLOAD(
+        polynomial,
+        (class Order, class Coefficient, bool CommutativeRing, class Alloc),
+        (Order, Coefficient, CommutativeRing, Alloc),
+        (class, class, bool, class),
+        exp_operator_mul<>,
+        *
+    );
+
+    CMPXX_AUX_TMP_TMP_ET_OPERATOR_OVERLOAD(
+        polynomial,
+        (class Order, class Coefficient, bool CommutativeRing, class Alloc),
+        (Order, Coefficient, CommutativeRing, Alloc),
+        (class, class, bool, class),
+        exp_operator_div<>,
+        /
+    );
+
+    CMPXX_AUX_TMP_TMP_ET_OPERATOR_OVERLOAD(
+        polynomial,
+        (class Order, class Coefficient, bool CommutativeRing, class Alloc),
+        (Order, Coefficient, CommutativeRing, Alloc),
+        (class, class, bool, class),
+        exp_operator_rem<>,
+        %
+    );
 
     CMPXX_INVOKE_MACRO_WITH_BUILT_IN_TYPE(CMPXX_POLYNOMIAL_BUILT_IN_TYPE_OPERATOR_OVERLOAD, +, +=);
     CMPXX_INVOKE_MACRO_WITH_BUILT_IN_TYPE(CMPXX_POLYNOMIAL_BUILT_IN_TYPE_OPERATOR_OVERLOAD, -, -=);
@@ -2681,11 +2805,13 @@ namespace test{
             // q = 101x^999 + 888x^777 + 666x^555
             q["555"]("666")["777"]("888")["999"]("101");
 
+            poly x = p + q;
+
             std::cout << "div.\n";
             std::cout << "lhs : " << q.get_str() << "\n";
             std::cout << "rhs : " << p.get_str() << "\n";
-            std::cout << "div : " << (q / p).get_str() << "\n";
-            std::cout << "mod : " << (q % p).get_str() << "\n";
+            std::cout << "div : " << poly(q / p).get_str() << "\n";
+            std::cout << "mod : " << poly(q % p).get_str() << "\n";
             std::cout << std::endl;
         }
 
@@ -2699,7 +2825,7 @@ namespace test{
             std::cout << "eea : " << poly::eea(s, t, f, g) << "\n";
             std::cout << "s   : " << s << "\n";
             std::cout << "t   : " << t << "\n";
-            std::cout << "eea : " << (s * f + t * g) << "\n";
+            std::cout << "eea : " << poly(s * f + t * g) << "\n";
             std::cout << std::endl;
         }
 
@@ -2713,7 +2839,7 @@ namespace test{
             std::cout << "eea : " << poly::classical_eea(s, t, f, g) << "\n";
             std::cout << "s   : " << s << "\n";
             std::cout << "t   : " << t << "\n";
-            std::cout << "eea : " << (s * f + t * g) << "\n";
+            std::cout << "eea : " << poly(s * f + t * g) << "\n";
             std::cout << std::endl;
         }
 
@@ -2733,7 +2859,7 @@ namespace test{
             std::cout << "eea : " << poly::classical_eea(s, t, 126, 35) << "\n";
             std::cout << "s   : " << s << "\n";
             std::cout << "t   : " << t << "\n";
-            std::cout << "eea : " << (s * 126 + t * 35) << "\n";
+            std::cout << "eea : " << poly(s * 126 + t * 35) << "\n";
             std::cout << std::endl;
         }
 
@@ -2742,6 +2868,7 @@ namespace test{
 
     struct test_type{
         test_type() : value(){}
+        test_type(double value_) : value(value_){}
 
         template<class Operator, class L, class R>
         test_type(const cmpxx::aux::expression_template<test_type, Operator, L, R> &expression) :
@@ -2750,7 +2877,9 @@ namespace test{
 
         template<class Operator, class L, class R>
         test_type &operator =(const cmpxx::aux::expression_template<test_type, Operator, L, R> &expression){
-            expression.eval(*this);
+            test_type temp;
+            expression.eval(temp);
+            *this = temp;
             return *this;
         }
 
@@ -2797,15 +2926,18 @@ namespace test{
     template<class T, class U>
     struct template_test_type{
         template_test_type() : x(), y(){}
+        template_test_type(int value) : x(T(value)), y(T(value)){}
 
-        template<template<class, class> class Other, class OtherT, class OtherU, class Operator, class L, class R>
-        template_test_type(const expression_template_test_type<Other, OtherT, OtherU, Operator, L, R> &expression) :
+        template<template<class, class> class Other, class Operator, class L, class R>
+        template_test_type(const expression_template_test_type<Other, T, U, Operator, L, R> &expression) :
             x(), y()
         { expression.eval(*this); }
 
-        template<template<class, class> class Other, class OtherT, class OtherU, class Operator, class L, class R>
-        template_test_type &operator =(const expression_template_test_type<Other, OtherT, OtherU, Operator, L, R> &expression){
-            expression.eval(*this);
+        template<template<class, class> class Other, class Operator, class L, class R>
+        template_test_type &operator =(const expression_template_test_type<Other, T, U, Operator, L, R> &expression){
+            template_test_type temp;
+            expression.eval(temp);
+            *this = temp;
             return *this;
         }
 
