@@ -6,7 +6,7 @@
 #include <cstdio>
 #include <cxxabi.h>
 
-// caution!! memory leaks!!
+// memory leaks!!
 namespace cmpxx{
     namespace debug{
         inline std::string demangle(const std::string &str){
@@ -50,7 +50,6 @@ namespace cmpxx{
     d(__VA_ARGS__, float);                                  \
     d(__VA_ARGS__, double);                                 \
     ld(__VA_ARGS__, long double);
-
 namespace cmpxx{
     namespace aux{
         template<bool Commutative = false>
@@ -1351,10 +1350,19 @@ namespace cmpxx{
 namespace cmpxx{
     namespace aux{
         template<class T>
-        struct expr_wrapper{
-            typedef T type;
-            expr_wrapper(const type &expr_) : expr(expr_){}
+        struct expr_wrapper;
+
+        template<class MPClass>
+        class mp_wrapper;
+
+        template<class T, class Expression>
+        struct expr_wrapper<__gmp_expr<T, Expression>>{
+            using type = __gmp_expr<T, Expression>;
+            inline expr_wrapper(const type &expr_) : expr(expr_){}
             type expr;
+            inline operator mp_wrapper<T>() const{
+                return expr;
+            }
         };
 
         template<class MPClass>
@@ -1614,7 +1622,7 @@ namespace cmpxx{
         return op(l.expr, r);                                                       \
     }
 
-#define CMPXX_MP_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL(op, e, type, bigtype, r_type) \
+#define CMPXX_MP_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL(op, e, r_type, type, bigtype) \
     template<class T, class U>                                                            \
     r_type(e, bigtype)                                                                    \
     op(const cmpxx::aux::mp_wrapper<__gmp_expr<T, U>> &l, type r){                        \
@@ -1637,16 +1645,16 @@ namespace cmpxx{
     }
 
 #define CMPXX_MP_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL_S(op, e, r, t) \
-    CMPXX_MP_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL(op, e, t, signed long int, r);
+    CMPXX_MP_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL(op, e, r, t, signed long int);
 
 #define CMPXX_MP_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL_U(op, e, r, t) \
-    CMPXX_MP_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL(op, e, t, unsigned long int, r);
+    CMPXX_MP_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL(op, e, r, t, unsigned long int);
 
 #define CMPXX_MP_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL_D(op, e, r, t) \
-    CMPXX_MP_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL(op, e, t, double, r);
+    CMPXX_MP_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL(op, e, r, t, double);
 
 #define CMPXX_MP_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL_LD(op, e, r, t) \
-    CMPXX_MP_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL(op, e, t, long double, r);
+    CMPXX_MP_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD_IMPL(op, e, r, t, long double);
 
 #define CMPXX_MP_WRAPPER_DEFINE_BUILT_IN_TYPE_OVERLOAD(op, e, r) \
     CMPXX_INVOKE_MACRO_WITH_S_U_D_LD(                            \
@@ -2179,6 +2187,12 @@ namespace cmpxx{
         polynomial inverse(const order &l) const{
             const polynomial &f = *this;
             polynomial g = 1;
+            if(commutative_ring){
+                auto iter = f.container.find(0);
+                g.container.begin()->second /= iter->second;
+            }else{
+                g = coefficient(1);
+            }
             std::size_t r = l.ceil_log2();
             order rem = 2;
             for(std::size_t i = 0; i < r; ++i, rem *= rem){
