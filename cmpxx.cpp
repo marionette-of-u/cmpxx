@@ -2190,8 +2190,6 @@ namespace cmpxx{
             if(commutative_ring){
                 auto iter = f.container.find(0);
                 g.container.begin()->second /= iter->second;
-            }else{
-                g = coefficient(1);
             }
             std::size_t r = l.ceil_log2();
             order rem = 2;
