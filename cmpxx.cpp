@@ -50,6 +50,7 @@ namespace cmpxx{
     d(__VA_ARGS__, float);                                  \
     d(__VA_ARGS__, double);                                 \
     ld(__VA_ARGS__, long double);
+
 namespace cmpxx{
     namespace aux{
         template<bool Commutative = false>
@@ -345,7 +346,7 @@ namespace cmpxx{
         // note : ExpressionTemplate for TemplateTemplateParameterClass
         // decl_tmp_tmp_param : "(class T, class U, class V, ...)"
         // tmp_tmp_param      : "(T, U, V, ...)"
-        // tmp_tmp_prace      : "(class, class, class, ...)"
+        // tmp_tmp_place      : "(class, class, class, ...)"
 
         template<class Type>
         struct identity_expression{
@@ -367,8 +368,8 @@ namespace cmpxx{
             const type &value_;
         };
 
-        #define CMPXX_AUX_TMP_TMP_ET_IDENTITY_EXPRESSION(identifier, decl_tmp_tmp_param, tmp_tmp_param, tmp_tmp_prace) \
-            template<template<CMPXX_AUX_EXPAND_MACRO_ARGS tmp_tmp_prace> class Type, CMPXX_AUX_EXPAND_MACRO_ARGS decl_tmp_tmp_param> \
+        #define CMPXX_AUX_TMP_TMP_ET_IDENTITY_EXPRESSION(identifier, decl_tmp_tmp_param, tmp_tmp_param, tmp_tmp_place) \
+            template<template<CMPXX_AUX_EXPAND_MACRO_ARGS tmp_tmp_place> class Type, CMPXX_AUX_EXPAND_MACRO_ARGS decl_tmp_tmp_param> \
             struct identity_expression_ ## identifier{ \
                 using type = Type<CMPXX_AUX_EXPAND_MACRO_ARGS tmp_tmp_param>; \
                 static const bool calculated = true; \
@@ -422,8 +423,8 @@ namespace cmpxx{
             const rhs &rhs_;
         };
 
-        #define CMPXX_AUX_TMP_TMP_ET_EXPRESSION_TEMPLATE(identifier, decl_tmp_tmp_param, tmp_tmp_param, tmp_tmp_prace) \
-            template<template<CMPXX_AUX_EXPAND_MACRO_ARGS tmp_tmp_prace> class Type, CMPXX_AUX_EXPAND_MACRO_ARGS decl_tmp_tmp_param, class BinaryOp, class L, class R, bool Calculated = false> \
+        #define CMPXX_AUX_TMP_TMP_ET_EXPRESSION_TEMPLATE(identifier, decl_tmp_tmp_param, tmp_tmp_param, tmp_tmp_place) \
+            template<template<CMPXX_AUX_EXPAND_MACRO_ARGS tmp_tmp_place> class Type, CMPXX_AUX_EXPAND_MACRO_ARGS decl_tmp_tmp_param, class BinaryOp, class L, class R, bool Calculated = false> \
             struct expression_template_ ## identifier{ \
                 using type = Type<CMPXX_AUX_EXPAND_MACRO_ARGS tmp_tmp_param>; \
                 using binary_operator = BinaryOp; \
@@ -492,8 +493,8 @@ namespace cmpxx{
             const rhs &rhs_;
         };
 
-        #define CMPXX_AUX_TMP_TMP_ET_EXPRESSION_TEMPLATE_IDENTITY_IDENTITY(identifier, decl_tmp_tmp_param, tmp_tmp_param, tmp_tmp_prace) \
-            template<template<CMPXX_AUX_EXPAND_MACRO_ARGS tmp_tmp_prace> class Type, CMPXX_AUX_EXPAND_MACRO_ARGS decl_tmp_tmp_param, class BinaryOp, bool Calculated> \
+        #define CMPXX_AUX_TMP_TMP_ET_EXPRESSION_TEMPLATE_IDENTITY_IDENTITY(identifier, decl_tmp_tmp_param, tmp_tmp_param, tmp_tmp_place) \
+            template<template<CMPXX_AUX_EXPAND_MACRO_ARGS tmp_tmp_place> class Type, CMPXX_AUX_EXPAND_MACRO_ARGS decl_tmp_tmp_param, class BinaryOp, bool Calculated> \
             struct expression_template_ ## identifier< \
                 Type, \
                 CMPXX_AUX_EXPAND_MACRO_ARGS tmp_tmp_param, \
@@ -743,8 +744,8 @@ namespace cmpxx{
             const rhs &rhs_;
         };
 
-        #define CMPXX_AUX_TMP_TMP_ET_TEMPLATE_IDENTITY_COMBINATION(identifier, decl_tmp_tmp_param, tmp_tmp_param, tmp_tmp_prace) \
-            template<template<CMPXX_AUX_EXPAND_MACRO_ARGS tmp_tmp_prace> class Type, CMPXX_AUX_EXPAND_MACRO_ARGS decl_tmp_tmp_param, class BinaryOp, class R, bool Calculated> \
+        #define CMPXX_AUX_TMP_TMP_ET_TEMPLATE_IDENTITY_COMBINATION(identifier, decl_tmp_tmp_param, tmp_tmp_param, tmp_tmp_place) \
+            template<template<CMPXX_AUX_EXPAND_MACRO_ARGS tmp_tmp_place> class Type, CMPXX_AUX_EXPAND_MACRO_ARGS decl_tmp_tmp_param, class BinaryOp, class R, bool Calculated> \
             struct expression_template_ ## identifier<Type, CMPXX_AUX_EXPAND_MACRO_ARGS tmp_tmp_param, BinaryOp, identity_expression_ ## identifier<Type, CMPXX_AUX_EXPAND_MACRO_ARGS tmp_tmp_param>, R, Calculated>{ \
                 using type = Type<CMPXX_AUX_EXPAND_MACRO_ARGS tmp_tmp_param>; \
                 using binary_operator = BinaryOp; \
@@ -771,7 +772,7 @@ namespace cmpxx{
                 const lhs &lhs_; \
                 const rhs &rhs_; \
             }; \
-            template<template<CMPXX_AUX_EXPAND_MACRO_ARGS tmp_tmp_prace> class Type, CMPXX_AUX_EXPAND_MACRO_ARGS decl_tmp_tmp_param, class BinaryOp, class L, bool Calculated> \
+            template<template<CMPXX_AUX_EXPAND_MACRO_ARGS tmp_tmp_place> class Type, CMPXX_AUX_EXPAND_MACRO_ARGS decl_tmp_tmp_param, class BinaryOp, class L, bool Calculated> \
             struct expression_template_ ## identifier<Type, CMPXX_AUX_EXPAND_MACRO_ARGS tmp_tmp_param, BinaryOp, L, identity_expression_ ## identifier<Type, CMPXX_AUX_EXPAND_MACRO_ARGS tmp_tmp_param>, Calculated>{ \
                 using type = Type<CMPXX_AUX_EXPAND_MACRO_ARGS tmp_tmp_param>; \
                 using binary_operator = BinaryOp; \
@@ -797,8 +798,8 @@ namespace cmpxx{
                 const rhs &rhs_; \
             };
 
-        #define CMPXX_AUX_TMP_TMP_ET_OPERATOR_OVERLOAD_TYPE_TO_BUILT_IN_TYPE(identifier, decl_tmp_tmp_param, tmp_tmp_param, tmp_tmp_prace, built_in_type) \
-            template<template<CMPXX_AUX_EXPAND_MACRO_ARGS tmp_tmp_prace> class Type, CMPXX_AUX_EXPAND_MACRO_ARGS decl_tmp_tmp_param, class BinaryOp, bool Calculated> \
+        #define CMPXX_AUX_TMP_TMP_ET_OPERATOR_OVERLOAD_TYPE_TO_BUILT_IN_TYPE(identifier, decl_tmp_tmp_param, tmp_tmp_param, tmp_tmp_place, built_in_type) \
+            template<template<CMPXX_AUX_EXPAND_MACRO_ARGS tmp_tmp_place> class Type, CMPXX_AUX_EXPAND_MACRO_ARGS decl_tmp_tmp_param, class BinaryOp, bool Calculated> \
             struct expression_template_ ## identifier<Type, CMPXX_AUX_EXPAND_MACRO_ARGS tmp_tmp_param, BinaryOp, identity_expression_ ## identifier<Type, CMPXX_AUX_EXPAND_MACRO_ARGS tmp_tmp_param>, built_in_type, Calculated>{ \
                 using type = Type<CMPXX_AUX_EXPAND_MACRO_ARGS tmp_tmp_param>; \
                 using binary_operator = BinaryOp; \
@@ -828,7 +829,7 @@ namespace cmpxx{
                 const lhs &lhs_; \
                 const rhs &rhs_; \
             }; \
-            template<template<CMPXX_AUX_EXPAND_MACRO_ARGS tmp_tmp_prace> class Type, CMPXX_AUX_EXPAND_MACRO_ARGS decl_tmp_tmp_param, class BinaryOp, bool Calculated> \
+            template<template<CMPXX_AUX_EXPAND_MACRO_ARGS tmp_tmp_place> class Type, CMPXX_AUX_EXPAND_MACRO_ARGS decl_tmp_tmp_param, class BinaryOp, bool Calculated> \
             struct expression_template_ ## identifier<Type, CMPXX_AUX_EXPAND_MACRO_ARGS tmp_tmp_param, BinaryOp, built_in_type, identity_expression_ ## identifier<Type, CMPXX_AUX_EXPAND_MACRO_ARGS tmp_tmp_param>, Calculated>{ \
                 using type = Type<CMPXX_AUX_EXPAND_MACRO_ARGS tmp_tmp_param>; \
                 using binary_operator = BinaryOp; \
@@ -859,7 +860,7 @@ namespace cmpxx{
                 const rhs &rhs_; \
             }; \
             template< \
-                template<CMPXX_AUX_EXPAND_MACRO_ARGS tmp_tmp_prace> class Type, \
+                template<CMPXX_AUX_EXPAND_MACRO_ARGS tmp_tmp_place> class Type, \
                 CMPXX_AUX_EXPAND_MACRO_ARGS decl_tmp_tmp_param, \
                 class BinaryOp, \
                 class OtherBinaryOp, \
@@ -904,7 +905,7 @@ namespace cmpxx{
                 const rhs &rhs_; \
             }; \
             template< \
-                template<CMPXX_AUX_EXPAND_MACRO_ARGS tmp_tmp_prace> class Type, \
+                template<CMPXX_AUX_EXPAND_MACRO_ARGS tmp_tmp_place> class Type, \
                 CMPXX_AUX_EXPAND_MACRO_ARGS decl_tmp_tmp_param, \
                 class BinaryOp, \
                 class OtherBinaryOp, \
@@ -1167,8 +1168,8 @@ namespace cmpxx{
             }                                                                   \
             CMPXX_INVOKE_MACRO_WITH_BUILT_IN_TYPE(CMPXX_AUX_ET_OPERATOR_OVERLOAD_BUILT_IN_TYPE, op, op_code, type)
 
-        #define CMPXX_AUX_TMP_TMP_ET_OPERATOR_OVERLOAD_BUILT_IN_TYPE(identifier, decl_tmp_tmp_param, tmp_tmp_param, tmp_tmp_prace, op, op_code, built_in_type) \
-            template<template<CMPXX_AUX_EXPAND_MACRO_ARGS tmp_tmp_prace> class type, CMPXX_AUX_EXPAND_MACRO_ARGS decl_tmp_tmp_param, class CMPXX_AUX_TYPE_Op, class CMPXX_AUX_TYPE_T, class CMPXX_AUX_TYPE_U> \
+        #define CMPXX_AUX_TMP_TMP_ET_OPERATOR_OVERLOAD_BUILT_IN_TYPE(identifier, decl_tmp_tmp_param, tmp_tmp_param, tmp_tmp_place, op, op_code, built_in_type) \
+            template<template<CMPXX_AUX_EXPAND_MACRO_ARGS tmp_tmp_place> class type, CMPXX_AUX_EXPAND_MACRO_ARGS decl_tmp_tmp_param, class CMPXX_AUX_TYPE_Op, class CMPXX_AUX_TYPE_T, class CMPXX_AUX_TYPE_U> \
             expression_template_ ## identifier< \
                 type, \
                 CMPXX_AUX_EXPAND_MACRO_ARGS tmp_tmp_param, \
@@ -1187,7 +1188,7 @@ namespace cmpxx{
                     built_in_type \
                 >(lhs, rhs); \
             } \
-            template<template<CMPXX_AUX_EXPAND_MACRO_ARGS tmp_tmp_prace> class type, CMPXX_AUX_EXPAND_MACRO_ARGS decl_tmp_tmp_param, class CMPXX_AUX_TYPE_Op, class CMPXX_AUX_TYPE_T, class CMPXX_AUX_TYPE_U> \
+            template<template<CMPXX_AUX_EXPAND_MACRO_ARGS tmp_tmp_place> class type, CMPXX_AUX_EXPAND_MACRO_ARGS decl_tmp_tmp_param, class CMPXX_AUX_TYPE_Op, class CMPXX_AUX_TYPE_T, class CMPXX_AUX_TYPE_U> \
             expression_template_ ## identifier< \
                 type, \
                 CMPXX_AUX_EXPAND_MACRO_ARGS tmp_tmp_param, \
@@ -1207,7 +1208,7 @@ namespace cmpxx{
                 >(lhs, rhs); \
             }
 
-        #define CMPXX_AUX_TMP_TMP_ET_OPERATOR_OVERLOAD(identifier, decl_tmp_tmp_param, tmp_tmp_param, tmp_tmp_prace, op, op_code) \
+        #define CMPXX_AUX_TMP_TMP_ET_OPERATOR_OVERLOAD(identifier, decl_tmp_tmp_param, tmp_tmp_param, tmp_tmp_place, op, op_code) \
             template<template<CMPXX_AUX_EXPAND_MACRO_ARGS decl_tmp_tmp_param> class type, CMPXX_AUX_EXPAND_MACRO_ARGS decl_tmp_tmp_param> \
             expression_template_ ## identifier< \
                 type, \
@@ -1224,7 +1225,7 @@ namespace cmpxx{
                     identity_expression_ ## identifier<type, CMPXX_AUX_EXPAND_MACRO_ARGS tmp_tmp_param> \
                 >(lhs, rhs); \
             } \
-            template<template<CMPXX_AUX_EXPAND_MACRO_ARGS tmp_tmp_prace> class type, CMPXX_AUX_EXPAND_MACRO_ARGS decl_tmp_tmp_param, class CMPXX_AUX_TYPE_Op, class CMPXX_AUX_TYPE_T, class CMPXX_AUX_TYPE_U> \
+            template<template<CMPXX_AUX_EXPAND_MACRO_ARGS tmp_tmp_place> class type, CMPXX_AUX_EXPAND_MACRO_ARGS decl_tmp_tmp_param, class CMPXX_AUX_TYPE_Op, class CMPXX_AUX_TYPE_T, class CMPXX_AUX_TYPE_U> \
             expression_template_ ## identifier< \
                 type, \
                 CMPXX_AUX_EXPAND_MACRO_ARGS tmp_tmp_param, \
@@ -1243,7 +1244,7 @@ namespace cmpxx{
                     expression_template_ ## identifier<type, CMPXX_AUX_EXPAND_MACRO_ARGS tmp_tmp_param, CMPXX_AUX_TYPE_Op, CMPXX_AUX_TYPE_T, CMPXX_AUX_TYPE_U> \
                 >(lhs, rhs); \
             } \
-            template<template<CMPXX_AUX_EXPAND_MACRO_ARGS tmp_tmp_prace> class type, CMPXX_AUX_EXPAND_MACRO_ARGS decl_tmp_tmp_param, class CMPXX_AUX_TYPE_Op, class CMPXX_AUX_TYPE_T, class CMPXX_AUX_TYPE_U> \
+            template<template<CMPXX_AUX_EXPAND_MACRO_ARGS tmp_tmp_place> class type, CMPXX_AUX_EXPAND_MACRO_ARGS decl_tmp_tmp_param, class CMPXX_AUX_TYPE_Op, class CMPXX_AUX_TYPE_T, class CMPXX_AUX_TYPE_U> \
             expression_template_ ## identifier< \
                 type, \
                 CMPXX_AUX_EXPAND_MACRO_ARGS tmp_tmp_param, \
@@ -1262,7 +1263,7 @@ namespace cmpxx{
                     identity_expression_ ## identifier<type, CMPXX_AUX_EXPAND_MACRO_ARGS tmp_tmp_param> \
                 >(lhs, rhs); \
             } \
-            template<template<CMPXX_AUX_EXPAND_MACRO_ARGS tmp_tmp_prace> class type, CMPXX_AUX_EXPAND_MACRO_ARGS decl_tmp_tmp_param, class CMPXX_AUX_TYPE_OpT, class CMPXX_AUX_TYPE_OpU, class CMPXX_AUX_TYPE_T, class CMPXX_AUX_TYPE_U, class CMPXX_AUX_TYPE_V, class CMPXX_AUX_TYPE_W> \
+            template<template<CMPXX_AUX_EXPAND_MACRO_ARGS tmp_tmp_place> class type, CMPXX_AUX_EXPAND_MACRO_ARGS decl_tmp_tmp_param, class CMPXX_AUX_TYPE_OpT, class CMPXX_AUX_TYPE_OpU, class CMPXX_AUX_TYPE_T, class CMPXX_AUX_TYPE_U, class CMPXX_AUX_TYPE_V, class CMPXX_AUX_TYPE_W> \
             expression_template_ ## identifier< \
                 type, \
                 CMPXX_AUX_EXPAND_MACRO_ARGS tmp_tmp_param, \
@@ -1281,14 +1282,14 @@ namespace cmpxx{
                     expression_template_ ## identifier<type, CMPXX_AUX_EXPAND_MACRO_ARGS tmp_tmp_param, CMPXX_AUX_TYPE_OpU, CMPXX_AUX_TYPE_V, CMPXX_AUX_TYPE_W> \
                 >(lhs, rhs); \
             } \
-            CMPXX_INVOKE_MACRO_WITH_BUILT_IN_TYPE(CMPXX_AUX_TMP_TMP_ET_OPERATOR_OVERLOAD_BUILT_IN_TYPE, identifier, decl_tmp_tmp_param, tmp_tmp_param, tmp_tmp_prace, op, op_code)
+            CMPXX_INVOKE_MACRO_WITH_BUILT_IN_TYPE(CMPXX_AUX_TMP_TMP_ET_OPERATOR_OVERLOAD_BUILT_IN_TYPE, identifier, decl_tmp_tmp_param, tmp_tmp_param, tmp_tmp_place, op, op_code)
 
-        #define CMPXX_AUX_GENERATE_TMP_TMP_PARAM_ET(identifier, decl_tmp_tmp_param, tmp_tmp_param, tmp_tmp_prace) \
-            CMPXX_AUX_TMP_TMP_ET_IDENTITY_EXPRESSION(identifier, decl_tmp_tmp_param, tmp_tmp_param, tmp_tmp_prace); \
-            CMPXX_AUX_TMP_TMP_ET_EXPRESSION_TEMPLATE(identifier, decl_tmp_tmp_param, tmp_tmp_param, tmp_tmp_prace); \
-            CMPXX_AUX_TMP_TMP_ET_TEMPLATE_IDENTITY_COMBINATION(identifier, decl_tmp_tmp_param, tmp_tmp_param, tmp_tmp_prace); \
-            CMPXX_INVOKE_MACRO_WITH_BUILT_IN_TYPE(CMPXX_AUX_TMP_TMP_ET_OPERATOR_OVERLOAD_TYPE_TO_BUILT_IN_TYPE, identifier, decl_tmp_tmp_param, tmp_tmp_param, tmp_tmp_prace); \
-            CMPXX_AUX_TMP_TMP_ET_EXPRESSION_TEMPLATE_IDENTITY_IDENTITY(identifier, decl_tmp_tmp_param, tmp_tmp_param, tmp_tmp_prace);
+        #define CMPXX_AUX_GENERATE_TMP_TMP_PARAM_ET(identifier, decl_tmp_tmp_param, tmp_tmp_param, tmp_tmp_place) \
+            CMPXX_AUX_TMP_TMP_ET_IDENTITY_EXPRESSION(identifier, decl_tmp_tmp_param, tmp_tmp_param, tmp_tmp_place); \
+            CMPXX_AUX_TMP_TMP_ET_EXPRESSION_TEMPLATE(identifier, decl_tmp_tmp_param, tmp_tmp_param, tmp_tmp_place); \
+            CMPXX_AUX_TMP_TMP_ET_TEMPLATE_IDENTITY_COMBINATION(identifier, decl_tmp_tmp_param, tmp_tmp_param, tmp_tmp_place); \
+            CMPXX_INVOKE_MACRO_WITH_BUILT_IN_TYPE(CMPXX_AUX_TMP_TMP_ET_OPERATOR_OVERLOAD_TYPE_TO_BUILT_IN_TYPE, identifier, decl_tmp_tmp_param, tmp_tmp_param, tmp_tmp_place); \
+            CMPXX_AUX_TMP_TMP_ET_EXPRESSION_TEMPLATE_IDENTITY_IDENTITY(identifier, decl_tmp_tmp_param, tmp_tmp_param, tmp_tmp_place);
 
         template<class T>
         inline std::string lexical_cast(const T &value){
@@ -2201,6 +2202,16 @@ namespace cmpxx{
             return g;
         }
 
+        static std::pair<polynomial, polynomial> inverse(const polynomial &f, const polynomial &g, const polynomial &p, const order &l){
+            polynomial g_i = g, p_2_i = p;
+            for(std::size_t i = 0, r = l.ceil_log2(); i < r; ++i){
+                p_2_i = p_2_i * p_2_i;
+                polynomial next_g = (2 * g_i - f * g_i * g_i) % p_2_i;
+                g_i = std::move(next_g);
+            }
+            return std::make_pair(g_i, p_2_i);
+        }
+
         inline const order &deg() const{
             return container.rbegin()->first;
         }
@@ -2817,8 +2828,6 @@ namespace test{
             // q = 101x^999 + 888x^777 + 666x^555
             q["555"]("666")["777"]("888")["999"]("101");
 
-            poly x = p + q;
-
             std::cout << "div.\n";
             std::cout << "lhs : " << q.get_str() << "\n";
             std::cout << "rhs : " << p.get_str() << "\n";
@@ -2872,6 +2881,16 @@ namespace test{
             std::cout << "s   : " << s << "\n";
             std::cout << "t   : " << t << "\n";
             std::cout << "eea : " << poly(s * 126 + t * 35) << "\n";
+            std::cout << std::endl;
+        }
+
+        {
+            poly f = 5, g = -1, p = 3;
+            poly::order l = 2;
+            std::cout << "p-radix inverse\n";
+            std::pair<poly, poly> gp = poly::inverse(f, g, p, l);
+            std::cout << poly((gp.first * f) % gp.second) << "\n";
+            std::cout << gp.second << "\n";
             std::cout << std::endl;
         }
 
