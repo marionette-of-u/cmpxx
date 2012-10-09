@@ -1,5 +1,5 @@
 TARGET      = cmpxx
-SOURCEFILES = cmpxx.cpp
+SOURCEFILES = main.cpp
 INCLUDES    = -I"C:/MinGW/lib/gcc/mingw32/4.6.2/include"
 CC          = clang++
 CFLAGS      = -std=c++11 -c
