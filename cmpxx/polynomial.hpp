@@ -511,6 +511,12 @@ namespace cmpxx{
             return !container.empty() && lc() == 1;
         }
 
+        inline void negative_sign(){
+            for(auto &x : container){
+                x.second *= -1;
+            }
+        }
+
         template<class Variable>
         inline std::string get_str(const Variable &v) const{
             return get_str_impl<std::string, char, Variable, std::ostringstream>(v, '*', '^', '+', '-', '0', '(', ')');
@@ -865,28 +871,6 @@ namespace cmpxx{
             return ret;                                                                 \
         }
 
-    #define CMPXX_POLYNOMIAL_BUILT_IN_TYPE_OPERATOR_OVERLOAD(op, a_op, t)               \
-        template<class Order, class Coefficient, bool HasInverseElements, class Alloc>  \
-        inline polynomial<Order, Coefficient, HasInverseElements, Alloc>                \
-        operator op(                                                                    \
-            const polynomial<Order, Coefficient, HasInverseElements, Alloc> &l,         \
-            t v                                                                         \
-        ){                                                                              \
-            polynomial<Order, Coefficient, HasInverseElements, Alloc> ret(l);           \
-            ret a_op polynomial<Order, Coefficient, HasInverseElements, Alloc>(v);      \
-            return ret;                                                                 \
-        }                                                                               \
-        template<class Order, class Coefficient, bool HasInverseElements, class Alloc>  \
-        inline polynomial<Order, Coefficient, HasInverseElements, Alloc>                \
-        operator op(                                                                    \
-            t v,                                                                        \
-            const polynomial<Order, Coefficient, HasInverseElements, Alloc> &r          \
-        ){                                                                              \
-            polynomial<Order, Coefficient, HasInverseElements, Alloc> ret(v);           \
-            ret a_op r;                                                                 \
-            return ret;                                                                 \
-        }
-
     CMPXX_POLYNOMIAL_OPERATOR_OVERLOAD(+, +=);
     CMPXX_POLYNOMIAL_OPERATOR_OVERLOAD(-, -=);
     CMPXX_POLYNOMIAL_OPERATOR_OVERLOAD(*, *=);
@@ -937,6 +921,62 @@ namespace cmpxx{
         exp_operator_rem<>,
         %
     );
+
+    namespace aux{
+        template<class T = void>
+        struct positive_sign_functor{
+            template<class Polynomial>
+            void operator ()(const Polynomial &x) const{
+                /* empty */
+            }
+        };
+
+        template<class T = void>
+        struct negative_sign_functor{
+            template<class Polynomial>
+            void operator ()(Polynomial &x) const{
+                x.negative_sign();
+            }
+        };
+    }
+
+    CMPXX_AUX_TMP_TMP_ET_UNARY_OPERATOR_OVERLOAD(
+        polynomial,
+        (class Order, class Coefficient, bool HasInverseElements, class Alloc),
+        (Order, Coefficient, HasInverseElements, Alloc),
+        (class, class, bool, class),
+        exp_operator_positive<aux::positive_sign_functor<>>, +
+    );
+
+    CMPXX_AUX_TMP_TMP_ET_UNARY_OPERATOR_OVERLOAD(
+        polynomial,
+        (class Order, class Coefficient, bool HasInverseElements, class Alloc),
+        (Order, Coefficient, HasInverseElements, Alloc),
+        (class, class, bool, class),
+        exp_operator_negative<aux::negative_sign_functor<>>, -
+    );
+
+    #define CMPXX_POLYNOMIAL_BUILT_IN_TYPE_OPERATOR_OVERLOAD(op, a_op, t)               \
+        template<class Order, class Coefficient, bool HasInverseElements, class Alloc>  \
+        inline polynomial<Order, Coefficient, HasInverseElements, Alloc>                \
+        operator op(                                                                    \
+            const polynomial<Order, Coefficient, HasInverseElements, Alloc> &l,         \
+            t v                                                                         \
+        ){                                                                              \
+            polynomial<Order, Coefficient, HasInverseElements, Alloc> ret(l);           \
+            ret a_op polynomial<Order, Coefficient, HasInverseElements, Alloc>(v);      \
+            return ret;                                                                 \
+        }                                                                               \
+        template<class Order, class Coefficient, bool HasInverseElements, class Alloc>  \
+        inline polynomial<Order, Coefficient, HasInverseElements, Alloc>                \
+        operator op(                                                                    \
+            t v,                                                                        \
+            const polynomial<Order, Coefficient, HasInverseElements, Alloc> &r          \
+        ){                                                                              \
+            polynomial<Order, Coefficient, HasInverseElements, Alloc> ret(v);           \
+            ret a_op r;                                                                 \
+            return ret;                                                                 \
+        }
 
     CMPXX_INVOKE_MACRO_WITH_BUILT_IN_TYPE(CMPXX_POLYNOMIAL_BUILT_IN_TYPE_OPERATOR_OVERLOAD, +, +=);
     CMPXX_INVOKE_MACRO_WITH_BUILT_IN_TYPE(CMPXX_POLYNOMIAL_BUILT_IN_TYPE_OPERATOR_OVERLOAD, -, -=);

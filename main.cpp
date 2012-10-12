@@ -153,6 +153,15 @@ namespace test{
             std::cout << std::endl;
         }
 
+        {
+            poly x;
+            x[10](1)[9](2)[8](3)[7](4)[6](5)[5](6)[4](7)[3](8)[2](9)[1](10);
+            std::cout << poly(+x) << "\n";
+            std::cout << poly(-x) << "\n";
+            std::cout << poly(-(-x)) << "\n";
+            std::cout << std::endl;
+        }
+
         std::cout << std::endl;
     }
 
@@ -237,10 +246,17 @@ namespace test{
         double value;
     };
 
+    struct test_type_negative_functor{
+        inline void operator ()(test_type &x) const{
+            x.value = -x.value;
+        }
+    };
+
     CMPXX_AUX_ET_OPERATOR_OVERLOAD(test_type, exp_operator_add<>, +);
     CMPXX_AUX_ET_OPERATOR_OVERLOAD(test_type, exp_operator_mul<>, *);
     CMPXX_AUX_ET_OPERATOR_OVERLOAD(test_type, exp_operator_sub<>, -);
     CMPXX_AUX_ET_OPERATOR_OVERLOAD(test_type, exp_operator_div<>, /);
+    CMPXX_AUX_ET_UNARY_OPERATOR_OVERLOAD(test_type, exp_operator_negative<test_type_negative_functor>, -);
 
     CMPXX_AUX_GENERATE_TMP_TMP_PARAM_ET(test_type, (class T, class U), (T, U), (class, class));
 
@@ -302,28 +318,46 @@ namespace test{
         U y;
     };
 
+    struct template_test_type_operator_negative{
+        template<class T, class U>
+        inline void operator ()(template_test_type<T, U> &a) const{
+            a.x = -a.x;
+            a.y = -a.y;
+        }
+    };
+
     CMPXX_AUX_TMP_TMP_ET_OPERATOR_OVERLOAD(test_type, (class T, class U), (T, U), (class, class), exp_operator_add<>, +);
     CMPXX_AUX_TMP_TMP_ET_OPERATOR_OVERLOAD(test_type, (class T, class U), (T, U), (class, class), exp_operator_mul<>, *);
     CMPXX_AUX_TMP_TMP_ET_OPERATOR_OVERLOAD(test_type, (class T, class U), (T, U), (class, class), exp_operator_sub<>, -);
     CMPXX_AUX_TMP_TMP_ET_OPERATOR_OVERLOAD(test_type, (class T, class U), (T, U), (class, class), exp_operator_div<>, /);
+    CMPXX_AUX_TMP_TMP_ET_UNARY_OPERATOR_OVERLOAD(
+        test_type,
+        (class T, class U), (T, U), (class, class),
+        exp_operator_negative<template_test_type_operator_negative>, -
+    );
 
     void expression_template_test(){
         std::cout << "-------- expression template test.\n";
 
         {
-            test_type x_1, x_2, y, z, w;
+            test_type x_1, x_2, y, z, w, v;
             x_1.value = 200, x_2.value = 100, y.value = 5, z.value = 0.1;
             w = x_1 - y / z - x_2 + y * z + 0.5;
-            std::cout << "w = " << w.value << std::endl;
+            v = -(x_1 - y / z - x_2 + y * z + 0.5);
+            std::cout << "w = " << w.value << "\n";
+            std::cout << "v = " << v.value << "\n";
         }
         std::cout << "end of expression template test 1" << std::endl;
 
         {
-            template_test_type<int, double> x_1, x_2, y, z, w;
+            template_test_type<int, double> x_1, x_2, y, z, w, v;
             x_1.x = 200, x_1.y = 20, x_2.x = 100, x_2.y = 10, y.x = 5, y.y = 0.5, z.x = 1, z.y = 0.01;
             w = x_1 - y / z - x_2 + y * z + 50;
-            std::cout << "w.x = " << w.x << std::endl;
-            std::cout << "w.y = " << w.y << std::endl;
+            v = -(x_1 - y / z - x_2 + y * z + 50);
+            std::cout << "w.x = " << w.x << "\n";
+            std::cout << "w.y = " << w.y << "\n";
+            std::cout << "v.x = " << v.x << "\n";
+            std::cout << "v.y = " << v.y << "\n";
         }
         std::cout << "end of expression template test 2" << std::endl;
 

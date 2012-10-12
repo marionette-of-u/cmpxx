@@ -328,6 +328,14 @@ namespace cmpxx{
             }
         };
 
+        template<class Operator, bool Commutative, bool Reverse>
+        struct specialized_evaluator<Operator, Commutative, Reverse, 1>{
+            template<class T>
+            inline static void eval(T &target){
+                Operator::apply(target);
+            }
+        };
+
         // note : ExpressionTemplate for TemplateTemplateParameterClass
         // decl_tmp_tmp_param : "(class T, class U, class V, ...)"
         // tmp_tmp_param      : "(T, U, V, ...)"
@@ -401,7 +409,7 @@ namespace cmpxx{
                     binary_operator::commutative,
                     false,
                     binary_operator::operand_num
-                >::eval(result, result);
+                >::eval(result, rhs);
             }
 
             const lhs &lhs_;
@@ -729,6 +737,130 @@ namespace cmpxx{
             const rhs &rhs_;
         };
 
+        template<class Type, class UnaryOp, class Operand, bool Calculated>
+        struct expression_template<Type, UnaryOp, Operand, void, Calculated>{
+            using type = Type;
+            using unary_operator = UnaryOp;
+            using operand = Operand;
+
+            inline expression_template(const operand &operand_a) :
+                operand_(operand_a)
+            {}
+
+            inline expression_template(const expression_template &other) :
+                operand_(other.operand_)
+            {}
+
+            inline operator type() const{
+                type ret;
+                eval(ret);
+                return ret;
+            }
+
+            inline void eval(type &result) const{
+                result = operand_;
+                specialized_evaluator<
+                    unary_operator,
+                    unary_operator::commutative,
+                    false,
+                    unary_operator::operand_num
+                >::eval(result);
+            }
+
+            operand operand_;
+        };
+
+        template<class Type, class UnaryOp, bool Calculated>
+        struct expression_template<Type, UnaryOp, identity_expression<Type>, void, Calculated>{
+            using type = Type;
+            using unary_operator = UnaryOp;
+            using operand = identity_expression<type>;
+
+            inline expression_template(const operand &operand_a) :
+                operand_(operand_a)
+            {}
+
+            inline expression_template(const expression_template &other) :
+                operand_(other.operand_)
+            {}
+
+            inline operator type() const{
+                type ret;
+                eval(ret);
+                return ret;
+            }
+
+            inline void eval(type &result) const{
+                operand_.eval(result);
+                specialized_evaluator<
+                    unary_operator,
+                    unary_operator::commutative,
+                    false,
+                    unary_operator::operand_num
+                >::eval(result);
+            }
+
+            operand operand_;
+        };
+
+        #define CMPXX_AUX_TMP_TMP_ET_UNARY_OPERATOR(identifier, decl_tmp_tmp_param, tmp_tmp_param, tmp_tmp_place) \
+            template<template<CMPXX_AUX_EXPAND_MACRO_ARGS tmp_tmp_place> class Type, CMPXX_AUX_EXPAND_MACRO_ARGS decl_tmp_tmp_param, class UnaryOp, class Operand, bool Calculated> \
+            struct expression_template_ ## identifier<Type, CMPXX_AUX_EXPAND_MACRO_ARGS tmp_tmp_param, UnaryOp, Operand, void, Calculated>{ \
+                using type = Type<CMPXX_AUX_EXPAND_MACRO_ARGS tmp_tmp_param>; \
+                using unary_operator = UnaryOp; \
+                using operand = Operand; \
+                static const bool calculated = Calculated; \
+                inline expression_template_ ## identifier(const operand &operand_a) : \
+                    operand_(operand_a) \
+                {} \
+                inline expression_template_ ## identifier(const expression_template_ ## identifier &other) : \
+                    operand_(other.operand_) \
+                {} \
+                inline operator type() const{ \
+                    type ret; \
+                    eval(ret); \
+                    return ret; \
+                } \
+                inline void eval(type &result) const{ \
+                    operand_.eval(result); \
+                    cmpxx::aux::specialized_evaluator< \
+                        unary_operator, \
+                        unary_operator::commutative, \
+                        false, \
+                        unary_operator::operand_num \
+                    >::eval(result); \
+                } \
+                const operand &operand_; \
+            }; \
+            template<template<CMPXX_AUX_EXPAND_MACRO_ARGS tmp_tmp_place> class Type, CMPXX_AUX_EXPAND_MACRO_ARGS decl_tmp_tmp_param, class UnaryOp, bool Calculated> \
+            struct expression_template_ ## identifier<Type, CMPXX_AUX_EXPAND_MACRO_ARGS tmp_tmp_param, UnaryOp, identity_expression_ ## identifier<Type, CMPXX_AUX_EXPAND_MACRO_ARGS tmp_tmp_param>, void, Calculated>{ \
+                using type = Type<CMPXX_AUX_EXPAND_MACRO_ARGS tmp_tmp_param>; \
+                using unary_operator = UnaryOp; \
+                using operand = type; \
+                static const bool calculated = Calculated; \
+                inline expression_template_ ## identifier(const operand &operand_a) : \
+                    operand_(operand_a) \
+                {} \
+                inline expression_template_ ## identifier(const expression_template_ ## identifier &other) : \
+                    operand_(other.operand_) \
+                {} \
+                inline operator type() const{ \
+                    type ret; \
+                    eval(ret); \
+                    return ret; \
+                } \
+                inline void eval(type &result) const{ \
+                    result = operand_; \
+                    cmpxx::aux::specialized_evaluator< \
+                        unary_operator, \
+                        unary_operator::commutative, \
+                        false, \
+                        unary_operator::operand_num \
+                    >::eval(result); \
+                } \
+                operand operand_; \
+            };
+
         #define CMPXX_AUX_TMP_TMP_ET_TEMPLATE_IDENTITY_COMBINATION(identifier, decl_tmp_tmp_param, tmp_tmp_param, tmp_tmp_place) \
             template<template<CMPXX_AUX_EXPAND_MACRO_ARGS tmp_tmp_place> class Type, CMPXX_AUX_EXPAND_MACRO_ARGS decl_tmp_tmp_param, class BinaryOp, class R, bool Calculated> \
             struct expression_template_ ## identifier<Type, CMPXX_AUX_EXPAND_MACRO_ARGS tmp_tmp_param, BinaryOp, identity_expression_ ## identifier<Type, CMPXX_AUX_EXPAND_MACRO_ARGS tmp_tmp_param>, R, Calculated>{ \
@@ -743,6 +875,11 @@ namespace cmpxx{
                 inline expression_template_ ## identifier(const expression_template_ ## identifier &other) : \
                     lhs_(other.lhs_), rhs_(other.rhs_) \
                 {} \
+                inline operator type() const{ \
+                    type ret; \
+                    eval(ret); \
+                    return ret; \
+                } \
                 inline void eval(type &result) const{ \
                     type rhs; \
                     result = lhs_; \
@@ -770,6 +907,11 @@ namespace cmpxx{
                 inline expression_template_ ## identifier(const expression_template_ ## identifier &other) : \
                     lhs_(other.lhs_), rhs_(other.rhs_) \
                 {} \
+                inline operator type() const{ \
+                    type ret; \
+                    eval(ret); \
+                    return ret; \
+                } \
                 inline void eval(type &result) const{ \
                     lhs_.eval(result); \
                     cmpxx::aux::specialized_evaluator< \
@@ -1153,6 +1295,35 @@ namespace cmpxx{
             }                                                                   \
             CMPXX_INVOKE_MACRO_WITH_BUILT_IN_TYPE(CMPXX_AUX_ET_OPERATOR_OVERLOAD_BUILT_IN_TYPE, op, op_code, type)
 
+        #define CMPXX_AUX_ET_UNARY_OPERATOR_OVERLOAD(type, op, op_code)                     \
+            cmpxx::aux::expression_template<                                                \
+                type,                                                                       \
+                cmpxx::aux::op,                                                             \
+                cmpxx::aux::identity_expression<type>,                                      \
+                void                                                                        \
+            > operator op_code(const type &operand){                                        \
+                return cmpxx::aux::expression_template<                                     \
+                    type,                                                                   \
+                    cmpxx::aux::op,                                                         \
+                    cmpxx::aux::identity_expression<type>,                                  \
+                    void                                                                    \
+                >(operand);                                                                 \
+            }                                                                               \
+            template<class Op, class T, class U>                                            \
+            cmpxx::aux::expression_template<                                                \
+                type,                                                                       \
+                cmpxx::aux::op,                                                             \
+                cmpxx::aux::expression_template<type, Op, T, U>,                            \
+                void                                                                        \
+            > operator op_code(const cmpxx::aux::expression_template<type, Op, T, U> &x){   \
+                return cmpxx::aux::expression_template<                                     \
+                    type,                                                                   \
+                    cmpxx::aux::op,                                                         \
+                    cmpxx::aux::expression_template<type, Op, T, U>,                        \
+                    void                                                                    \
+                >(x);                                                                       \
+            }
+
         #define CMPXX_AUX_TMP_TMP_ET_OPERATOR_OVERLOAD_BUILT_IN_TYPE(identifier, decl_tmp_tmp_param, tmp_tmp_param, tmp_tmp_place, op, op_code, built_in_type) \
             template<template<CMPXX_AUX_EXPAND_MACRO_ARGS tmp_tmp_place> class type, CMPXX_AUX_EXPAND_MACRO_ARGS decl_tmp_tmp_param, class CMPXX_AUX_TYPE_Op, class CMPXX_AUX_TYPE_T, class CMPXX_AUX_TYPE_U> \
             expression_template_ ## identifier< \
@@ -1269,9 +1440,44 @@ namespace cmpxx{
             } \
             CMPXX_INVOKE_MACRO_WITH_BUILT_IN_TYPE(CMPXX_AUX_TMP_TMP_ET_OPERATOR_OVERLOAD_BUILT_IN_TYPE, identifier, decl_tmp_tmp_param, tmp_tmp_param, tmp_tmp_place, op, op_code)
 
+        #define CMPXX_AUX_TMP_TMP_ET_UNARY_OPERATOR_OVERLOAD(identifier, decl_tmp_tmp_param, tmp_tmp_param, tmp_tmp_place, op, op_code) \
+            template<template<CMPXX_AUX_EXPAND_MACRO_ARGS tmp_tmp_place> class type, CMPXX_AUX_EXPAND_MACRO_ARGS decl_tmp_tmp_param> \
+            expression_template_ ## identifier< \
+                type, \
+                CMPXX_AUX_EXPAND_MACRO_ARGS tmp_tmp_param, \
+                cmpxx::aux::op, \
+                identity_expression_ ## identifier<type, CMPXX_AUX_EXPAND_MACRO_ARGS tmp_tmp_param>, \
+                void \
+            > operator op_code(const type<CMPXX_AUX_EXPAND_MACRO_ARGS tmp_tmp_param> &operand){\
+                return expression_template_ ## identifier< \
+                    type, \
+                    CMPXX_AUX_EXPAND_MACRO_ARGS tmp_tmp_param, \
+                    cmpxx::aux::op, \
+                    identity_expression_ ## identifier<type, CMPXX_AUX_EXPAND_MACRO_ARGS tmp_tmp_param>, \
+                    void \
+                >(operand); \
+            } \
+            template<template<CMPXX_AUX_EXPAND_MACRO_ARGS tmp_tmp_place> class type, CMPXX_AUX_EXPAND_MACRO_ARGS decl_tmp_tmp_param, class CMPXX_AUX_TYPE_Op, class CMPXX_AUX_TYPE_T, class CMPXX_AUX_TYPE_U> \
+            expression_template_ ## identifier< \
+                type, \
+                CMPXX_AUX_EXPAND_MACRO_ARGS tmp_tmp_param, \
+                cmpxx::aux::op, \
+                expression_template_ ## identifier<type, CMPXX_AUX_EXPAND_MACRO_ARGS tmp_tmp_param, CMPXX_AUX_TYPE_Op, CMPXX_AUX_TYPE_T, CMPXX_AUX_TYPE_U>, \
+                void \
+            > operator op_code(const expression_template_ ## identifier<type, CMPXX_AUX_EXPAND_MACRO_ARGS tmp_tmp_param, CMPXX_AUX_TYPE_Op, CMPXX_AUX_TYPE_T, CMPXX_AUX_TYPE_U> &operand){ \
+                return expression_template_ ## identifier< \
+                    type, \
+                    CMPXX_AUX_EXPAND_MACRO_ARGS tmp_tmp_param, \
+                    cmpxx::aux::op, \
+                    expression_template_ ## identifier<type, CMPXX_AUX_EXPAND_MACRO_ARGS tmp_tmp_param, CMPXX_AUX_TYPE_Op, CMPXX_AUX_TYPE_T, CMPXX_AUX_TYPE_U>, \
+                    void \
+                >(operand); \
+            }
+
         #define CMPXX_AUX_GENERATE_TMP_TMP_PARAM_ET(identifier, decl_tmp_tmp_param, tmp_tmp_param, tmp_tmp_place) \
             CMPXX_AUX_TMP_TMP_ET_IDENTITY_EXPRESSION(identifier, decl_tmp_tmp_param, tmp_tmp_param, tmp_tmp_place); \
             CMPXX_AUX_TMP_TMP_ET_EXPRESSION_TEMPLATE(identifier, decl_tmp_tmp_param, tmp_tmp_param, tmp_tmp_place); \
+            CMPXX_AUX_TMP_TMP_ET_UNARY_OPERATOR(identifier, decl_tmp_tmp_param, tmp_tmp_param, tmp_tmp_place); \
             CMPXX_AUX_TMP_TMP_ET_TEMPLATE_IDENTITY_COMBINATION(identifier, decl_tmp_tmp_param, tmp_tmp_param, tmp_tmp_place); \
             CMPXX_INVOKE_MACRO_WITH_BUILT_IN_TYPE(CMPXX_AUX_TMP_TMP_ET_OPERATOR_OVERLOAD_TYPE_TO_BUILT_IN_TYPE, identifier, decl_tmp_tmp_param, tmp_tmp_param, tmp_tmp_place); \
             CMPXX_AUX_TMP_TMP_ET_EXPRESSION_TEMPLATE_IDENTITY_IDENTITY(identifier, decl_tmp_tmp_param, tmp_tmp_param, tmp_tmp_place);
