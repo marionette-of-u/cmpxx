@@ -5,7 +5,6 @@
 
 #include <memory>
 #include <utility>
-#include <iostream> // !!!
 #include "aux_xx.hpp"
 
 namespace cmpxx{
@@ -173,7 +172,6 @@ namespace cmpxx{
                 target *= operand;
                 if(target.shared_ptr_p()){
                     target.canonicalize();
-                    std::cout << target.value() << std::endl;
                 }
                 return target;
             }

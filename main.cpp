@@ -185,6 +185,15 @@ namespace test{
         }
 
         {
+            poly x, y;
+            x[12](8)[7](7)[3](2);
+            y[3](1)[2](4)[0](1);
+            std::cout << "poly div monic poly\n";
+            std::cout << x << " / " << y << " = " << poly(x / y) << "\n";
+            std::cout << std::endl;
+        }
+
+        {
             poly f = 5, g = -1, p = 3;
             poly::order l = 2;
             std::cout << "p-radix inverse\n";
@@ -388,7 +397,8 @@ namespace test{
     }
 
     void quotient_ring_test(){
-        std::cout << "quotient ring test\n";
+        std::cout << "-------- quotient ring test\n";
+        
         {
             using quotient_ring = cmpxx::quotient_ring<int>;
             quotient_ring a(3, 7), b(5, a.shared_ptr_p()), c;

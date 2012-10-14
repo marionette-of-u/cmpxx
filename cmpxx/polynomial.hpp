@@ -337,7 +337,7 @@ namespace cmpxx{
         template<bool Rem>
         static polynomial div(polynomial &rem, const polynomial &lhs, const polynomial &rhs){
             if(lhs.container.empty()){ return lhs; }
-            if(has_inverse_elements && rhs.is_monic()){
+            if(rhs.is_monic()){
                 polynomial r = monic_div<Rem>(rem, lhs, rhs);
                 return r;
             }
