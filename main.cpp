@@ -185,11 +185,14 @@ namespace test{
         }
 
         {
-            poly x, y;
+            poly x, y, q, r;
             x[12](8)[7](7)[3](2);
             y[3](1)[2](4)[0](1);
+            q = poly::div<true>(r, x, y);
             std::cout << "poly div monic poly\n";
-            std::cout << x << " / " << y << " = " << poly(x / y) << "\n";
+            std::cout << poly(x / y) << "\n";
+            std::cout << r << "\n";
+            std::cout << poly(q * y + r) << "\n";
             std::cout << std::endl;
         }
 
