@@ -28,6 +28,3 @@ debug:
 run: release
 	./$(TARGET)
 
-clean:
-	-rm -rf $(TARGET) $(TARGET).exe $(TARGET).ll $(SOURCEFILES:.cpp=.o)
-

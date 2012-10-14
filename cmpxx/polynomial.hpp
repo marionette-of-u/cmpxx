@@ -3,11 +3,11 @@
 
 // polynomial
 
-#include "aux_xx.hpp"
 #include <utility>
 #include <map>
 #include <algorithm>
 #include <iterator>
+#include "aux_xx.hpp"
 
 namespace cmpxx{
     CMPXX_AUX_GENERATE_TMP_TMP_PARAM_ET(
@@ -192,70 +192,25 @@ namespace cmpxx{
             return *this;
         }
 
-        template<template<class, class, bool, class> class Other, class Op, class L, class R, bool Calculated>
-        inline polynomial &operator +=(
-            const expression_template_polynomial<
-                Other, Order, Coefficient, HasInverseElements, Alloc,
-                Op, L, R, Calculated
-            > &expression
-        ){
-            polynomial temp;
-            expression.eval(temp);
-            *this += temp;
-            return *this;
-        }
+        #define CMPXX_POLYNOMIAL_DEFINE_ET_COMPOUND_OPERATOR(op)                                                    \
+            template<template<class, class, bool, class> class Other, class Op, class L, class R, bool Calculated>  \
+            inline polynomial &operator op(                                                                         \
+                const expression_template_polynomial<                                                               \
+                    Other, order, coefficient, has_inverse_elements, Alloc,                                         \
+                    Op, L, R, Calculated                                                                            \
+                > &expression                                                                                       \
+            ){                                                                                                      \
+                polynomial temp;                                                                                    \
+                expression.eval(temp);                                                                              \
+                *this op temp;                                                                                      \
+                return *this;                                                                                       \
+            }
 
-        template<template<class, class, bool, class> class Other, class Op, class L, class R, bool Calculated>
-        inline polynomial &operator -=(
-            const expression_template_polynomial<
-                Other, Order, Coefficient, HasInverseElements, Alloc,
-                Op, L, R, Calculated
-            > &expression
-        ){
-            polynomial temp;
-            expression.eval(temp);
-            *this -= temp;
-            return *this;
-        }
-
-        template<template<class, class, bool, class> class Other, class Op, class L, class R, bool Calculated>
-        inline polynomial &operator *=(
-            const expression_template_polynomial<
-                Other, Order, Coefficient, HasInverseElements, Alloc,
-                Op, L, R, Calculated
-            > &expression
-        ){
-            polynomial temp;
-            expression.eval(temp);
-            *this *= temp;
-            return *this;
-        }
-
-        template<template<class, class, bool, class> class Other, class Op, class L, class R, bool Calculated>
-        inline polynomial &operator /=(
-            const expression_template_polynomial<
-                Other, Order, Coefficient, HasInverseElements, Alloc,
-                Op, L, R, Calculated
-            > &expression
-        ){
-            polynomial temp;
-            expression.eval(temp);
-            *this /= temp;
-            return *this;
-        }
-
-        template<template<class, class, bool, class> class Other, class Op, class L, class R, bool Calculated>
-        inline polynomial &operator %=(
-            const expression_template_polynomial<
-                Other, Order, Coefficient, HasInverseElements, Alloc,
-                Op, L, R, Calculated
-            > &expression
-        ){
-            polynomial temp;
-            expression.eval(temp);
-            *this %= temp;
-            return *this;
-        }
+        CMPXX_POLYNOMIAL_DEFINE_ET_COMPOUND_OPERATOR(+=);
+        CMPXX_POLYNOMIAL_DEFINE_ET_COMPOUND_OPERATOR(-=);
+        CMPXX_POLYNOMIAL_DEFINE_ET_COMPOUND_OPERATOR(*=);
+        CMPXX_POLYNOMIAL_DEFINE_ET_COMPOUND_OPERATOR(/=);
+        CMPXX_POLYNOMIAL_DEFINE_ET_COMPOUND_OPERATOR(%=);
 
     private:
         class coefficient_proxy{

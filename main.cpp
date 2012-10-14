@@ -2,6 +2,7 @@
 #include "cmpxx/rational.hpp"
 #include "cmpxx/floating.hpp"
 #include "cmpxx/polynomial.hpp"
+#include "cmpxx/quotient_ring.hpp"
 
 // debug
 
@@ -159,6 +160,7 @@ namespace test{
             std::cout << poly(+x) << "\n";
             std::cout << poly(-x) << "\n";
             std::cout << poly(-(-x)) << "\n";
+            std::cout << poly(-(-x + x + 1)) << "\n";
             std::cout << std::endl;
         }
 
@@ -384,12 +386,30 @@ namespace test{
 
         std::cout << std::endl;
     }
+
+    void quotient_ring_test(){
+        std::cout << "quotient ring test\n";
+        {
+            using quotient_ring = cmpxx::quotient_ring<int>;
+            quotient_ring a(3, 7), b(5, a.shared_ptr_p()), c;
+            c = a * b;
+            std::cout << c.value() << " (1)\n";
+            c = a * 5;
+            std::cout << c.value() << " (2)\n";
+            c = 3 * b;
+            std::cout << c.value() << " (3)\n";
+            std::cout << std::endl;
+        }
+
+        std::cout << std::endl;
+    }
 }
 
-int main(int argc, char *argv[]){
+int main(){
     test::expression_template_test();
     test::polynomial_test_1();
     test::polynomial_test_2();
+    test::quotient_ring_test();
     test::dynamic_link_test();
 
     return 0;
