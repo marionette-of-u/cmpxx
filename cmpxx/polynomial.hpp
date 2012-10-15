@@ -338,8 +338,7 @@ namespace cmpxx{
         static polynomial div(polynomial &rem, const polynomial &lhs, const polynomial &rhs){
             if(lhs.container.empty()){ return lhs; }
             if(rhs.is_monic()){
-                polynomial r = monic_div<Rem>(rem, lhs, rhs);
-                return r;
+                return monic_div<Rem>(rem, lhs, rhs);
             }
             polynomial r;
             rem = lhs;
@@ -362,7 +361,7 @@ namespace cmpxx{
         }
 
         inline static polynomial classical_gcd(const polynomial &x, const polynomial &y){
-            static_assert(!has_inverse_elements, "coefficient type is has inverse elements.");
+            static_assert(!has_inverse_elements, "has_inverse_elements == true");
             if(x >= y){
                 return classical_gcd_impl(x, y);
             }else{
@@ -379,7 +378,7 @@ namespace cmpxx{
         }
 
         inline static polynomial eea(polynomial &cl, polynomial &cr, const polynomial &l, const polynomial &r){
-            static_assert(has_inverse_elements, "coefficient type is non-has inverse elements.");
+            static_assert(has_inverse_elements, "has_inverse_elements == false");
             if(l >= r){
                 return eea_impl(cl, cr, l, r);
             }else{
@@ -469,6 +468,12 @@ namespace cmpxx{
         inline void negative_sign(){
             for(auto &x : container){
                 x.second *= -1;
+            }
+        }
+
+        inline void canonicalize(){
+            for(auto &x : container){
+                x.second.canonicalize();
             }
         }
 

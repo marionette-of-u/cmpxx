@@ -400,17 +400,36 @@ namespace test{
     }
 
     void quotient_ring_test(){
-        std::cout << "-------- quotient ring test\n";
-        
+        std::cout << "-------- quotient ring test.\n";
+
         {
+            std::cout << "factor test\n";
+            using quotient_ring = cmpxx::quotient_ring<int>;
+            quotient_ring a(3), b(10, 13), c;
+            a += b;
+            a.canonicalize();
+            std::cout << a << " (a)\n";
+            b *= 3;
+            std::cout << b << " (b)\n";
+            b += 1;
+            a = 3;
+            a.p(11);
+            c += a * b;
+            std::cout << c << " (c)\n";
+            std::cout << c.p() << " (c)\n";
+            std::cout << std::endl;
+        }
+
+        {
+            std::cout << "expression template for quotient ring\n";
             using quotient_ring = cmpxx::quotient_ring<int>;
             quotient_ring a(3, 7), b(5, a.shared_ptr_p()), c;
             c = a * b;
-            std::cout << c.value() << " (1)\n";
+            std::cout << c << " (1)\n";
             c = a * 5;
-            std::cout << c.value() << " (2)\n";
+            std::cout << c << " (2)\n";
             c = 3 * b;
-            std::cout << c.value() << " (3)\n";
+            std::cout << c << " (3)\n";
             std::cout << std::endl;
         }
 
@@ -427,3 +446,4 @@ int main(){
 
     return 0;
 }
+

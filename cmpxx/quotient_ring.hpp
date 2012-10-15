@@ -40,22 +40,17 @@ namespace cmpxx{
 
         inline quotient_ring &operator =(const quotient_ring &other){
             value_ = other.value_;
-            p_ = other.p_;
+            if(!p_){
+                p_ = other.p_;
+            }
             return *this;
         }
 
         inline quotient_ring &operator =(quotient_ring &&other){
             swap_value(other.value_);
-            swap_p(other.p_);
-            return *this;
-        }
-
-        template<template<class> class Other, class Op, class L, class R>
-        inline quotient_ring &operator =(const expression_template_quotient_ring<Other, type, Op, L, R>  &expression){
-            quotient_ring temp;
-            temp.p_ = p_;
-            expression.eval(temp);
-            *this = std::move(temp);
+            if(!p_){
+                swap_p(other.p_);
+            }
             return *this;
         }
 
@@ -63,13 +58,27 @@ namespace cmpxx{
             inline quotient_ring &operator =(t value){              \
                 value_ = value;                                     \
                 return *this;                                       \
-            }
+            }                                                       \
+            inline quotient_ring(t value) :                         \
+                value_(value), p_(nullptr)                          \
+            {}
+
+        template<template<class> class Other, class Op, class L, class R>
+        inline quotient_ring &operator =(const expression_template_quotient_ring<Other, type, Op, L, R>  &expression){
+            quotient_ring temp;
+            expression.eval(temp);
+            *this = std::move(temp);
+            return *this;
+        }
 
         CMPXX_INVOKE_MACRO_WITH_BUILT_IN_TYPE(CMPXX_QUOTIENT_RING_DEFINE_ASSIGN_OPERATOR, nil);
 
         #define CMPXX_QUOTIENT_RING_DEFINE_COMPOUND_OPERATOR(op)            \
             inline quotient_ring &operator op(const quotient_ring &other){  \
                 value_ op other.value_;                                     \
+                if(!p_){                                                    \
+                    p_ = other.p_;                                          \
+                }                                                           \
                 return *this;                                               \
             }                                                               \
             template<template<class> class Other, class Op, class L, class R, bool Calculated>  \
@@ -79,17 +88,48 @@ namespace cmpxx{
                 quotient_ring temp;                                                             \
                 e.eval(temp);                                                                   \
                 value_ op temp.value_;                                                          \
+                if(!p_){                                                                        \
+                    p_ = temp.p_;                                                               \
+                }                                                                               \
+                return *this;                                                                   \
+            }
+
+        #define CMPXX_QUOTIENT_RING_DEFINE_COMPOUND_OPERATOR_CANONICALIZE(op)   \
+            inline quotient_ring &operator op(const quotient_ring &other){      \
+                value_ op other.value_;                                         \
+                if(!p_){                                                        \
+                    p_ = other.p_;                                              \
+                }                                                               \
+                canonicalize();                                                 \
+                return *this;                                                   \
+            }                                                                   \
+            template<template<class> class Other, class Op, class L, class R, bool Calculated>  \
+            inline quotient_ring &operator op(                                                  \
+                const expression_template_quotient_ring<Other, type, Op, L, R, Calculated> &e   \
+            ){                                                                                  \
+                quotient_ring temp;                                                             \
+                e.eval(temp);                                                                   \
+                value_ op temp.value_;                                                          \
+                if(!p_){                                                                        \
+                    p_ = temp.p_;                                                               \
+                }                                                                               \
+                canonicalize();                                                                 \
                 return *this;                                                                   \
             }
 
         CMPXX_QUOTIENT_RING_DEFINE_COMPOUND_OPERATOR(+=);
         CMPXX_QUOTIENT_RING_DEFINE_COMPOUND_OPERATOR(-=);
-        CMPXX_QUOTIENT_RING_DEFINE_COMPOUND_OPERATOR(*=);
-        CMPXX_QUOTIENT_RING_DEFINE_COMPOUND_OPERATOR(/=);
         CMPXX_QUOTIENT_RING_DEFINE_COMPOUND_OPERATOR(%=);
+        CMPXX_QUOTIENT_RING_DEFINE_COMPOUND_OPERATOR_CANONICALIZE(*=);
+        CMPXX_QUOTIENT_RING_DEFINE_COMPOUND_OPERATOR_CANONICALIZE(/=);
 
         inline void canonicalize(){
-            value_ %= *p_;
+            if(p_){
+                value_ %= *p_;
+                if(value_ < 0){
+                    value_ += *p_;
+                }
+            }
         }
 
         inline const type &value() const{
@@ -98,6 +138,15 @@ namespace cmpxx{
 
         inline const type &p() const{
             return *p_;
+        }
+
+        inline void p(const type &p_a){
+            if(p_){
+                *p_ = p_a;
+            }else{
+                aux::shared_ptr<type> other_p(new type(p_a));
+                p_.swap(other_p);
+            }
         }
 
         inline const aux::shared_ptr<type> &shared_ptr_p() const{
@@ -170,9 +219,7 @@ namespace cmpxx{
             template<class T, class U>
             inline static T &apply(T &target, const U &operand){
                 target *= operand;
-                if(target.shared_ptr_p()){
-                    target.canonicalize();
-                }
+                target.canonicalize();
                 return target;
             }
         };
@@ -185,9 +232,7 @@ namespace cmpxx{
             template<class T, class U>
             inline static T &apply(T &target, const U &operand){
                 target /= operand;
-                if(target.shared_ptr_p()){
-                    target.canonicalize();
-                }
+                target.canonicalize();
                 return target;
             }
         };
@@ -195,9 +240,15 @@ namespace cmpxx{
 
     CMPXX_AUX_TMP_TMP_ET_OPERATOR_OVERLOAD(quotient_ring, (class Type), (Type), (class), exp_operator_add<>, +);
     CMPXX_AUX_TMP_TMP_ET_OPERATOR_OVERLOAD(quotient_ring, (class Type), (Type), (class), exp_operator_sub<>, -);
+    CMPXX_AUX_TMP_TMP_ET_OPERATOR_OVERLOAD(quotient_ring, (class Type), (Type), (class), exp_operator_rem<>, %);
     CMPXX_AUX_TMP_TMP_ET_OPERATOR_OVERLOAD(quotient_ring, (class Type), (Type), (class), quotient_exp_operator_mul<>, *);
     CMPXX_AUX_TMP_TMP_ET_OPERATOR_OVERLOAD(quotient_ring, (class Type), (Type), (class), quotient_exp_operator_div<>, /);
-    CMPXX_AUX_TMP_TMP_ET_OPERATOR_OVERLOAD(quotient_ring, (class Type), (Type), (class), exp_operator_rem<>, %);
+
+    template<class Type>
+    std::ostream &operator <<(std::ostream &ostream, const quotient_ring<Type> &q){
+        ostream << q.value();
+        return ostream;
+    }
 }
 
 #endif
