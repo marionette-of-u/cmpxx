@@ -165,7 +165,10 @@ namespace cmpxx{
                 return value_;
             }
 
-            inline mp_wrapper ceil_pow2() const{
+            /*
+             * 2^n に繰り上げた値を算出する
+             * */
+             mp_wrapper ceil_pow2() const{
                 static_assert(std::is_same<MPClass, mpz_class>::value, "this type is not integer.");
                 const std::size_t popcount = mpz_popcount(get_raw_value().get_mpz_t()), size = mpz_size(get_raw_value().get_mpz_t());
                 if(popcount <= 1){
@@ -181,7 +184,10 @@ namespace cmpxx{
                 return r;
             }
 
-            inline std::size_t ceil_log2() const{
+            /*
+             * ceil(log_{2} x) = y なる y を算出する
+             * */
+            std::size_t ceil_log2() const{
                 static_assert(std::is_same<MPClass, mpz_class>::value, "this type is not integer.");
                 std::size_t size = mpz_size(get_raw_value().get_mpz_t());
                 mp_limb_t *data = get_raw_value().get_mpz_t()->_mp_d, x = data[size - 1];
@@ -197,6 +203,30 @@ namespace cmpxx{
                     }
                 }
                 return (size - 1) * GMP_LIMB_BITS + n + m;
+            }
+
+            /*
+             * a > p について k * p > a, k = 2^n (n >= 1) なる k を算出する
+             * */
+            static std::size_t lower_bound_pow2_coefficient(const mp_wrapper &a, const mp_wrapper &p){
+                static_assert(std::is_same<MPClass, mpz_class>::value, "this type is not integer.");
+                std::size_t p_size = mpz_size(p.get_raw_value().get_mpz_t()), a_size = mpz_size(a.get_raw_value().get_mpz_t());
+                mp_limb_t p_last = p.get_raw_value().get_mpz_t()->_mp_d[p_size - 1], a_last = a.get_raw_value().get_mpz_t()->_mp_d[a_size - 1];
+                std::size_t p_deg2 = p_size * GMP_LIMB_BITS, a_deg2 = a_size * GMP_LIMB_BITS;
+                p_deg2 += index_of_leftmost_flag(p_last), a_deg2 += index_of_leftmost_flag(a_last);
+                std::size_t k = a_deg2 - p_deg2;
+                int r = mpn_cmp(a.get_raw_value().get_mpz_t()->_mp_d + (a_size - p_size), p.get_raw_value().get_mpz_t()->_mp_d, p_size);
+                if(r > 0){
+                    ++k;
+                }else{
+                    mp_limb_t *a_rest = a.get_raw_value().get_mpz_t()->_mp_d;
+                    for(std::size_t i = 0, length = a_size - p_size; i < length; ++i){
+                        if(a_rest[i] == 0){ continue; }
+                        ++k;
+                        break;
+                    }
+                }
+                return k != 0 ? k : 1;
             }
 
             inline static mp_wrapper absolute_max(const mp_wrapper &x, const mp_wrapper &y){
@@ -416,3 +446,4 @@ CMPXX_MP_WRAPPER_DEFINE_UNARY_OVERLOAD(ceil, __gmp_ceil_function);
 CMPXX_MP_WRAPPER_DEFINE_UNARY_OVERLOAD(sqrt, __gmp_sqrt_function);
 
 #endif
+

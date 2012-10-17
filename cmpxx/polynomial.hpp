@@ -334,6 +334,15 @@ namespace cmpxx{
             return container != rhs.container;
         }
 
+        /*
+         * 除算を行う
+         * Rem : true であれば商と同時に剰余を得る
+         * rem : 剰余
+         * lhs : 左辺
+         * rhs : 右辺
+         * return : 商
+         * 備考 : rhs が monic の場合は Newton iteration を使った高速除算が行われる
+         * */
         template<bool Rem>
         static polynomial div(polynomial &rem, const polynomial &lhs, const polynomial &rhs){
             if(lhs.container.empty()){ return lhs; }
@@ -360,6 +369,10 @@ namespace cmpxx{
             return r;
         }
 
+        /*
+         * 古典的な gcd を行う
+         * 備考 : coefficient は乗算に対して逆元を持っていてはならない
+         * */
         inline static polynomial classical_gcd(const polynomial &x, const polynomial &y){
             static_assert(!has_inverse_elements, "has_inverse_elements == true");
             if(x >= y){
@@ -369,6 +382,14 @@ namespace cmpxx{
             }
         }
 
+        /*
+         * 古典的な拡張ユークリッドアルゴリズムを行う
+         * cl : 入力の一次結合による算出結果の表現に使われる左辺の係数
+         * cr : 入力の一次結合による算出結果の表現に使われる右辺の係数
+         * l  : 左辺
+         * r  : 右辺
+         * return : 結果
+         * */
         inline static polynomial classical_eea(polynomial &cl, polynomial &cr, const polynomial &l, const polynomial &r){
             if(l >= r){
                 return classical_eea_impl(cl, cr, l, r);
@@ -377,6 +398,15 @@ namespace cmpxx{
             }
         }
 
+        /*
+         * 拡張ユークリッドアルゴリズムを行う
+         * cl : 入力の一次結合による算出結果の表現に使われる左辺の係数
+         * cr : 入力の一次結合による算出結果の表現に使われる右辺の係数
+         * l  : 左辺
+         * r  : 右辺
+         * return : 結果
+         * 備考 : coefficient は乗算に関して逆元を持っていなければならない
+         * */
         inline static polynomial eea(polynomial &cl, polynomial &cr, const polynomial &l, const polynomial &r){
             static_assert(has_inverse_elements, "has_inverse_elements == false");
             if(l >= r){
@@ -386,6 +416,14 @@ namespace cmpxx{
             }
         }
 
+        /*
+         * Newton iteration による逆元計算を行う
+         * l : 法となるxの非負の整数による指数
+         * return : f * g === 1 mod x^l となる g
+         * 備考 : このメンバを呼び出す時, 0 次の係数が 1 でなければならない
+         *        もしくは, coefficient が乗法に関して必ず逆元を持つ場合
+         *        0 次の係数が 0 以外のなんらかの値でなければならない
+         * */
         polynomial inverse(const order &l) const{
             const polynomial &f = *this;
             polynomial g = 1;
@@ -403,20 +441,34 @@ namespace cmpxx{
             return g;
         }
 
-        static std::pair<polynomial, polynomial> inverse(const polynomial &f, const polynomial &g, const polynomial &p, const order &l){
+        /*
+         * Newton iteration による p 進数逆元計算
+         * f, g, p, l : f * g === 1 mod p となる f, g
+         *              l は非負の整数でなければならない
+         *              f, g の coefficient は乗法に関して逆元を持っていてはならない
+         * return : f * g === 1 mod p^l なる g
+         * */
+        static polynomial inverse(const polynomial &f, const polynomial &g, const polynomial &p, const order &l){
+            static_assert(!has_inverse_elements, "has_inverse_elements == true");
             polynomial g_i = g, p_2_i = p;
             for(std::size_t i = 0, r = l.ceil_log2(); i < r; ++i){
                 p_2_i = p_2_i * p_2_i;
                 polynomial next_g = (2 * g_i - f * g_i * g_i) % p_2_i;
                 g_i = std::move(next_g);
             }
-            return std::make_pair(g_i, p_2_i);
+            return g_i;
         }
 
+        /*
+         * 最高次数
+         * */
         inline const order &deg() const{
             return container.rbegin()->first;
         }
 
+        /*
+         * 最高次の係数
+         * */
         inline const coefficient &lc() const{
             return container.rbegin()->second;
         }
@@ -461,16 +513,26 @@ namespace cmpxx{
             return result;
         }
 
+        /*
+         * 現在の多項式が monic かどうか
+         * */
         inline bool is_monic() const{
             return !container.empty() && lc() == 1;
         }
 
+        /*
+         * 現在の多項式の係数の符号を全て反転する
+         * */
         inline void negative_sign(){
             for(auto &x : container){
                 x.second *= -1;
             }
         }
 
+        /*
+         * 現在の多項式の係数を全て正規化する
+         * coefficient のメンバに canonicalize 関数がなければならない
+         * */
         inline void canonicalize(){
             for(auto &x : container){
                 x.second.canonicalize();
@@ -980,3 +1042,4 @@ namespace cmpxx{
 }
 
 #endif
+
