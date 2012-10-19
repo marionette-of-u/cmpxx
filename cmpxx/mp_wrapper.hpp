@@ -218,13 +218,15 @@ namespace cmpxx{
                 int r = mpn_cmp(a.get_raw_value().get_mpz_t()->_mp_d + (a_size - p_size), p.get_raw_value().get_mpz_t()->_mp_d, p_size);
                 if(r > 0){
                     ++k;
-                }else{
+                }else if(r == 0){
                     mp_limb_t *a_rest = a.get_raw_value().get_mpz_t()->_mp_d;
                     for(std::size_t i = 0, length = a_size - p_size; i < length; ++i){
                         if(a_rest[i] == 0){ continue; }
                         ++k;
                         break;
                     }
+                }else{
+                    /* empty */
                 }
                 return k != 0 ? k : 1;
             }

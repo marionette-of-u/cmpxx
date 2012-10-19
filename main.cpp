@@ -106,31 +106,6 @@ namespace test{
         std::cout << std::endl;
     }
 
-    void common_test(){
-        std::cout << "-------- common test.\n";
-
-        auto lower_bound_pow2_coefficient_test = [](const cmpxx::integer &p, cmpxx::integer a){
-            std::cout << "lower_bound_pow2_coefficient\n";
-            std::cout << "a         = " << a.get_raw_value().get_str(10) << "\n";
-            std::size_t e = cmpxx::integer::lower_bound_pow2_coefficient(p, a);
-            std::cout << "e = "<< e << "\n";
-            for(std::size_t i = 0; i < e - 1; ++i){
-                a <<= 1;
-            }
-            std::cout << "a^(e - 1) = " << a.get_raw_value().get_str(10) << "\n";
-            std::cout << "p         = " << p.get_raw_value().get_str(10) << "\n";
-            a <<= 1;
-            std::cout << "a^e       = " << a.get_raw_value().get_str(10) << "\n";
-            std::cout << std::endl;
-        };
-        lower_bound_pow2_coefficient_test("42949673984", "4294967296");
-        lower_bound_pow2_coefficient_test("34359738368", "34359738368");
-        lower_bound_pow2_coefficient_test("68719477760", "34359738368");
-        lower_bound_pow2_coefficient_test("68719477760", "1024");
-
-        std::cout << std::endl;
-    }
-
     void polynomial_test_1(){
         std::cout << "-------- integral domain test 1.\n";
 
@@ -449,6 +424,33 @@ namespace test{
 
         std::cout << std::endl;
     }
+
+    void common_test_1(){
+        std::cout << "-------- common test.\n";
+
+        auto lower_bound_pow2_coefficient_test = [](const cmpxx::integer &p, cmpxx::integer a){
+            std::cout << "lower_bound_pow2_coefficient\n";
+            std::cout << "a               = " << a.get_raw_value().get_str(10) << "\n";
+            std::size_t e = cmpxx::integer::lower_bound_pow2_coefficient(p, a);
+            std::cout << "e = "<< e << "\n";
+            for(std::size_t i = 0; i < e - 1; ++i){
+                a <<= 1;
+            }
+            std::cout << "a^{2 * (e - 1)} = " << a.get_raw_value().get_str(10) << "\n";
+            std::cout << "p               = " << p.get_raw_value().get_str(10) << "\n";
+            a <<= 1;
+            std::cout << "a^(2 * e)       = " << a.get_raw_value().get_str(10) << "\n";
+            std::cout << std::endl;
+        };
+        lower_bound_pow2_coefficient_test("42949673984", "4294967296");
+        lower_bound_pow2_coefficient_test("34359738368", "34359738368");
+        lower_bound_pow2_coefficient_test("68719477760", "34359738368");
+        lower_bound_pow2_coefficient_test("68719477760", "1024");
+        lower_bound_pow2_coefficient_test("68719477760", "1023");
+        lower_bound_pow2_coefficient_test("18446744073709551617", "1023");
+
+        std::cout << std::endl;
+    }
 }
 
 int main(){
@@ -456,7 +458,7 @@ int main(){
     test::polynomial_test_1();
     test::polynomial_test_2();
     test::quotient_ring_test();
-    test::common_test();
+    test::common_test_1();
     test::dynamic_link_test();
 
     return 0;
