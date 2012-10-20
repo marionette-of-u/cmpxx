@@ -206,7 +206,7 @@ namespace cmpxx{
             }
 
             /*
-             * a > p について k * p > a, k = 2^n (n >= 1) なる k を算出する
+             * a > p について k * p > a, k = 2^n (n >= 1) なる n を算出する
              * */
             static std::size_t lower_bound_pow2_coefficient(const mp_wrapper &a, const mp_wrapper &p){
                 static_assert(std::is_same<MPClass, mpz_class>::value, "this type is not integer.");
@@ -225,8 +225,6 @@ namespace cmpxx{
                         ++k;
                         break;
                     }
-                }else{
-                    /* empty */
                 }
                 return k != 0 ? k : 1;
             }

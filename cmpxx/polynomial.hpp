@@ -948,7 +948,7 @@ namespace cmpxx{
         template<class T = void>
         struct positive_sign_functor{
             template<class Polynomial>
-            void operator ()(const Polynomial &x) const{
+            inline void operator ()(const Polynomial &x) const{
                 /* empty */
             }
         };
@@ -956,7 +956,7 @@ namespace cmpxx{
         template<class T = void>
         struct negative_sign_functor{
             template<class Polynomial>
-            void operator ()(Polynomial &x) const{
+            inline void operator ()(Polynomial &x) const{
                 x.negative_sign();
             }
         };

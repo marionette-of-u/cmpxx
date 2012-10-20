@@ -6,6 +6,7 @@
 #include <utility>
 #include <string>
 #include <sstream>
+#include <limits>
 #include <gmpxx.h>
 
 #define CMPXX_AUX_EXPAND_MACRO_ARGS(...) __VA_ARGS__
@@ -1604,41 +1605,59 @@ namespace cmpxx{
             return str;
         }
 
-        namespace{
-            inline std::size_t index_of_leftmost_flag(mp_limb_t x){
-                mp_limb_t y, n = GMP_LIMB_BITS, c = n >> 1;
-                do{
-                    y = x >> c;
-                    if(y != 0){
-                        n -= c;
-                        x = y;
-                    }
-                    c >>= 1;
-                }while(c != 0);
-                return GMP_LIMB_BITS - n - x + 2;
-            }
-
-            inline std::size_t index_of_rightmost_flag(mp_limb_t x){
-                if(x == 0){ return 32; }
-                mp_limb_t y, n = GMP_LIMB_BITS - 1, c = GMP_LIMB_BITS >> 1;
-                do{
-                    y = x << c;
-                    if(y != 0){
-                        n -= c;
-                        x = y;
-                    }
-                    c >>= 1;
-                }while(c != 0);
-                return n;
-            }
-
-            inline mp_limb_t ceil_pow2(mp_limb_t n){
-                --n;
-                for(std::size_t i = 1; i < GMP_LIMB_BITS; i <<= 1){
-                    n = n | (n >> i);
+        template<class T>
+        inline std::size_t index_of_leftmost_flag(T x){
+            mp_limb_t y, n = std::numeric_limits<T>::digits, c = n >> 1;
+            do{
+                y = x >> c;
+                if(y != 0){
+                    n -= c;
+                    x = y;
                 }
-                return n + 1;
+                c >>= 1;
+            }while(c != 0);
+            return std::numeric_limits<T>::digits - n - x + 2;
+        }
+
+        template<class T>
+        inline std::size_t index_of_rightmost_flag(T x){
+            if(x == 0){ return 32; }
+            T y, n = std::numeric_limits<T>::digits - 1, c = std::numeric_limits<T>::digits >> 1;
+            do{
+                y = x << c;
+                if(y != 0){
+                    n -= c;
+                    x = y;
+                }
+                c >>= 1;
+            }while(c != 0);
+            return n;
+        }
+
+        template<class T>
+        inline T ceil_pow2(T n){
+            --n;
+            for(std::size_t i = 1; i < std::numeric_limits<T>::digits; i <<= 1){
+                n = n | (n >> i);
             }
+            return n + 1;
+        }
+
+        /*
+         * a^n を算出する
+         * */
+        template<class T>
+        T iterate_square(const T &a, std::size_t n){
+            int i = index_of_leftmost_flag(n) - 1;
+            T b = a, c = 1;
+            for(; i >= 0; --i){
+                b = c * c;
+                if(((n >> i) & 1) == 1){
+                    b *= a;
+                }
+                c = std::move(b);
+            }
+            return c;
         }
     }
 }

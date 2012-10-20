@@ -449,6 +449,13 @@ namespace test{
         lower_bound_pow2_coefficient_test("68719477760", "1023");
         lower_bound_pow2_coefficient_test("18446744073709551617", "1023");
 
+        auto square_test = [](const cmpxx::integer &a, std::size_t n){
+            std::cout << "square\n";
+            std::cout << a << "^" << n << " = " << cmpxx::aux::iterate_square(a, n);
+            std::cout << std::endl;
+        };
+        square_test(8, 13);
+
         std::cout << std::endl;
     }
 }
