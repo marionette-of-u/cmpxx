@@ -1649,7 +1649,7 @@ namespace cmpxx{
         template<class T>
         T iterate_square(const T &a, std::size_t n){
             int i = index_of_leftmost_flag(n) - 1;
-            T b = a, c = 1;
+            T b, c = 1;
             for(; i >= 0; --i){
                 b = c * c;
                 if(((n >> i) & 1) == 1){

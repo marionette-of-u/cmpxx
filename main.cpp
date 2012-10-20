@@ -455,6 +455,7 @@ namespace test{
             std::cout << std::endl;
         };
         square_test(8, 13);
+        square_test(9, 18);
 
         std::cout << std::endl;
     }
