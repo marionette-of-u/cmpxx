@@ -177,7 +177,7 @@ namespace cmpxx{
                 mp_wrapper r(*this << 1);
                 mpn_zero(r.get_raw_value().get_mpz_t()->_mp_d, size - 1);
                 mp_limb_t x = r.get_raw_value().get_mpz_t()->_mp_d[size - 1];
-                for(std::size_t i = 1; i < GMP_LIMB_BITS; i <<= 1){
+                for(std::size_t i = 1; i < std::numeric_limits<mp_limb_t>::digits; i <<= 1){
                     x = x | (x >> i);
                 }
                 r.get_raw_value().get_mpz_t()->_mp_d[size - 1] = x - (x >> 1);
@@ -193,7 +193,7 @@ namespace cmpxx{
                 mp_limb_t *data = get_raw_value().get_mpz_t()->_mp_d, x = data[size - 1];
                 std::size_t n = index_of_leftmost_flag(x);
                 if(x - (1 << (n - 1)) != 0){
-                    return (size - 1) * GMP_LIMB_BITS + n + 1;
+                    return (size - 1) * std::numeric_limits<mp_limb_t>::digits + n + 1;
                 }
                 std::size_t m = 0;
                 for(std::size_t i = 0, length = size - 1; i < length; ++i){
@@ -202,7 +202,7 @@ namespace cmpxx{
                         break;
                     }
                 }
-                return (size - 1) * GMP_LIMB_BITS + n + m;
+                return (size - 1) * std::numeric_limits<mp_limb_t>::digits + n + m;
             }
 
             /*
@@ -212,7 +212,7 @@ namespace cmpxx{
                 static_assert(std::is_same<MPClass, mpz_class>::value, "this type is not integer.");
                 std::size_t p_size = mpz_size(p.get_raw_value().get_mpz_t()), a_size = mpz_size(a.get_raw_value().get_mpz_t());
                 mp_limb_t p_last = p.get_raw_value().get_mpz_t()->_mp_d[p_size - 1], a_last = a.get_raw_value().get_mpz_t()->_mp_d[a_size - 1];
-                std::size_t p_deg2 = p_size * GMP_LIMB_BITS, a_deg2 = a_size * GMP_LIMB_BITS;
+                std::size_t p_deg2 = p_size * std::numeric_limits<mp_limb_t>::digits, a_deg2 = a_size * std::numeric_limits<mp_limb_t>::digits;
                 p_deg2 += index_of_leftmost_flag(p_last), a_deg2 += index_of_leftmost_flag(a_last);
                 std::size_t k = a_deg2 - p_deg2;
                 int r = mpn_cmp(a.get_raw_value().get_mpz_t()->_mp_d + (a_size - p_size), p.get_raw_value().get_mpz_t()->_mp_d, p_size);

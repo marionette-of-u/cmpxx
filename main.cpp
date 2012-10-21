@@ -114,9 +114,9 @@ namespace test{
             poly p, q;
 
             // p = 444x^333 + 222x^111
-            p["111"]("222")["333"]("444");
+            p[111](222)[333](444);
             // q = 101x^999 + 888x^777 + 666x^555
-            q["555"]("666")["777"]("888")["999"]("101");
+            q[555](666)[777](888)[999](101);
 
             std::cout << "div.\n";
             std::cout << "lhs : " << q.get_str() << "\n";
@@ -128,8 +128,8 @@ namespace test{
 
         {
             poly f, g, s, t;
-            f["3"]("18")["2"]("-42")["1"]("30")["0"]("-6");
-            g["2"]("-12")["1"]("10")["0"]("-2");
+            f[3](18)[2](-42)[1](30)[0](-6);
+            g[2](-12)[1](10)[0](-2);
             std::cout << "eea.\n";
             std::cout << "lhs : " << f << "\n";
             std::cout << "rhs : " << g << "\n";
@@ -142,8 +142,8 @@ namespace test{
 
         {
             poly f, g, s, t;
-            f["3"]("18")["2"]("-42")["1"]("30")["0"]("-6");
-            g["2"]("-12")["1"]("10")["0"]("-2");
+            f[3](18)[2](-42)[1](30)[0](-6);
+            g[2](-12)[1](10)[0](-2);
             std::cout << "eea.\n";
             std::cout << "lhs : " << f << "\n";
             std::cout << "rhs : " << g << "\n";
@@ -194,6 +194,18 @@ namespace test{
             std::cout << r << "\n";
             std::cout << poly(q * y + r) << "\n";
             std::cout << std::endl;
+        }
+
+        {
+            std::cout << "p-radix taylor expansion\n";
+            poly x, p;
+            p[3](1)[2](-15);
+            x[1](5)[2](4)[3](3)[4](2)[5](1);
+            std::cout << "target p : " << p << "\n" << "target x : " << x << "\n";
+            auto t_result = x.taylor_expansion(p);
+            for(auto &a_i : t_result){
+                std::cout << a_i.first << " : " << a_i.second << "\n";
+            }
         }
 
         std::cout << std::endl;
@@ -442,6 +454,7 @@ namespace test{
             std::cout << "a^(2 * e)       = " << a.get_raw_value().get_str(10) << "\n";
             std::cout << std::endl;
         };
+        lower_bound_pow2_coefficient_test(5, 1);
         lower_bound_pow2_coefficient_test("42949673984", "4294967296");
         lower_bound_pow2_coefficient_test("34359738368", "34359738368");
         lower_bound_pow2_coefficient_test("68719477760", "34359738368");
@@ -449,13 +462,20 @@ namespace test{
         lower_bound_pow2_coefficient_test("68719477760", "1023");
         lower_bound_pow2_coefficient_test("18446744073709551617", "1023");
 
-        auto square_test = [](const cmpxx::integer &a, std::size_t n){
-            std::cout << "square\n";
+        auto square_test_1 = [](const cmpxx::integer &a, std::size_t n){
+            std::cout << "square 1\n";
             std::cout << a << "^" << n << " = " << cmpxx::aux::iterate_square(a, n);
             std::cout << std::endl;
         };
-        square_test(8, 13);
-        square_test(9, 18);
+        square_test_1(8, 13);
+        square_test_1(9, 18);
+
+        auto square_test_2 = [](const cmpxx::integer &a, std::size_t n){
+            std::cout << "square 2\n";
+            std::cout << a << "^" << n << " = " << cmpxx::aux::iterate_square(a, 1 << n) << " = " << cmpxx::aux::iterate_square_pow2(a, n);
+            std::cout << std::endl;
+        };
+        square_test_2(13, 4);
 
         std::cout << std::endl;
     }

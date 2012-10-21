@@ -4,9 +4,10 @@
 // integer
 
 #include "mp_wrapper.hpp"
+#include "aux_xx.hpp"
 
 namespace cmpxx{
-    typedef aux::mp_wrapper<mpz_class> integer;
+    using integer = aux::mp_wrapper<mpz_class>;
 }
 
 #endif

@@ -1621,7 +1621,7 @@ namespace cmpxx{
 
         template<class T>
         inline std::size_t index_of_rightmost_flag(T x){
-            if(x == 0){ return 32; }
+            if(x == 0){ return std::numeric_limits<T>::digits; }
             T y, n = std::numeric_limits<T>::digits - 1, c = std::numeric_limits<T>::digits >> 1;
             do{
                 y = x << c;
@@ -1658,6 +1658,18 @@ namespace cmpxx{
                 c = std::move(b);
             }
             return c;
+        }
+        
+        /*
+         * a^n (n = 2^m, m > 0) を算出する
+         * */
+        template<class T>
+        T iterate_square_pow2(const T &a, std::size_t n){
+            T b = a;
+            for(std::size_t i = n; i > 0; --i){
+                b *= b;
+            }
+            return b;
         }
     }
 }

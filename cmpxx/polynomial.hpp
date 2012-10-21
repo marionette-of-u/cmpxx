@@ -5,8 +5,10 @@
 
 #include <utility>
 #include <map>
+#include <set>
 #include <algorithm>
 #include <iterator>
+#include <memory>
 #include "aux_xx.hpp"
 
 namespace cmpxx{
@@ -20,14 +22,14 @@ namespace cmpxx{
     template<class Order, class Coefficient, bool HasInverseElements, class Alloc = std::allocator<int>>
     class polynomial{
     private:
-        typedef std::map<
+        using basic_ordered_container = std::map<
             Order,
             Coefficient,
             std::less<Order>,
             typename Alloc::template rebind<
                 std::pair<const Order, Coefficient>
             >::other
-        > basic_ordered_container;
+        >;
 
     public:
         typedef typename basic_ordered_container::key_type order;
@@ -121,6 +123,8 @@ namespace cmpxx{
                 return iter;
             }
         };
+
+        using taylor_expanded_result = std::map<order, polynomial>;
 
     public:
         inline polynomial() : container(){}
@@ -460,6 +464,17 @@ namespace cmpxx{
         }
 
         /*
+         * 一般 Taylor 展開
+         * p : monic な多項式
+         * return : this = Σ_{ 0 <= i < k } a_i * p^i (0 <= i < k, deg a_i < m, deg a < k * m, k = 2^n, n > 0)
+         *          なる a_0, ..., a_{ k - 1 }
+         * */
+        inline taylor_expanded_result taylor_expansion(const polynomial &p) const{
+            std::size_t n = coefficient::lower_bound_pow2_coefficient(deg(), p.deg());
+            return taylor_expansion_impl(p, n);
+        }
+
+        /*
          * 最高次数
          * */
         inline const order &deg() const{
@@ -549,6 +564,31 @@ namespace cmpxx{
         }
 
     private:
+        taylor_expanded_result taylor_expansion_impl(const polynomial &p, std::size_t n) const{
+            taylor_expanded_result result;
+            if(n == 0){
+                if(!container.empty()){ result.insert(std::make_pair(0, *this)); }
+                return result;
+            }
+            --n;
+            polynomial pt = aux::iterate_square_pow2(p, n);
+            polynomial q, r;
+            q = div<true>(r, *this, pt);
+            {
+                taylor_expanded_result result_q = q.taylor_expansion_impl(p, n);
+                for(auto &a_i : result_q){
+                    result.insert(std::make_pair(a_i.first + (order(1) << n), std::move(const_cast<polynomial&>(a_i.second))));
+                }
+            }
+            {
+                taylor_expanded_result result_r = r.taylor_expansion_impl(p, n);
+                for(auto &a_i : result_r){
+                    result.insert(std::make_pair(std::move(const_cast<order&>(a_i.first)), std::move(const_cast<polynomial&>(a_i.second))));
+                }
+            }
+            return result;
+        }
+
         static polynomial eea_impl(polynomial &c_lhs, polynomial &c_rhs, const polynomial &lhs, const polynomial &rhs){
             if(rhs.container.empty()){
                 c_lhs = 0;

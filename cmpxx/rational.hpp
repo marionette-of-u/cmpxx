@@ -6,7 +6,7 @@
 #include "mp_wrapper.hpp"
 
 namespace cmpxx{
-    typedef aux::mp_wrapper<mpq_class> rational;
+    using rational = aux::mp_wrapper<mpq_class>;
 }
 
 #endif
