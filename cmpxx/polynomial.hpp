@@ -576,8 +576,10 @@ namespace cmpxx{
             q = div<true>(r, *this, pt);
             {
                 taylor_expanded_result result_q = q.taylor_expansion_impl(p, n);
+                order p2 = 1;
+                p2 << n;
                 for(auto &a_i : result_q){
-                    result.insert(std::make_pair(a_i.first + (order(1) << n), std::move(const_cast<polynomial&>(a_i.second))));
+                    result.insert(std::make_pair(a_i.first + p2, std::move(const_cast<polynomial&>(a_i.second))));
                 }
             }
             {
