@@ -442,25 +442,25 @@ namespace test{
 
         auto lower_bound_pow2_coefficient_test = [](const cmpxx::integer &p, cmpxx::integer a){
             std::cout << "lower_bound_pow2_coefficient\n";
-            std::cout << "a               = " << a.get_raw_value().get_str(10) << "\n";
+            std::cout << "a             = " << a.get_raw_value().get_str(10) << "\n";
             std::size_t e = cmpxx::integer::lower_bound_pow2_coefficient(p, a);
             std::cout << "e = "<< e << "\n";
             for(std::size_t i = 0; i < e - 1; ++i){
                 a <<= 1;
             }
-            std::cout << "a^{2 * (e - 1)} = " << a.get_raw_value().get_str(10) << "\n";
-            std::cout << "p               = " << p.get_raw_value().get_str(10) << "\n";
+            std::cout << "a * 2^(e - 1) = " << a.get_raw_value().get_str(10) << "\n";
+            std::cout << "p             = " << p.get_raw_value().get_str(10) << "\n";
             a <<= 1;
-            std::cout << "a^(2 * e)       = " << a.get_raw_value().get_str(10) << "\n";
+            std::cout << "a * 2^e       = " << a.get_raw_value().get_str(10) << "\n";
             std::cout << std::endl;
         };
         lower_bound_pow2_coefficient_test(5, 1);
         lower_bound_pow2_coefficient_test("42949673984", "4294967296");
         lower_bound_pow2_coefficient_test("34359738368", "34359738368");
         lower_bound_pow2_coefficient_test("68719477760", "34359738368");
-        lower_bound_pow2_coefficient_test("68719477760", "1024");
-        lower_bound_pow2_coefficient_test("68719477760", "1023");
-        lower_bound_pow2_coefficient_test("18446744073709551617", "1023");
+        lower_bound_pow2_coefficient_test("68719477760", 1024);
+        lower_bound_pow2_coefficient_test("68719477760", 1023);
+        lower_bound_pow2_coefficient_test("18446744073709551617", 1023);
 
         auto square_test_1 = [](const cmpxx::integer &a, std::size_t n){
             std::cout << "square 1\n";
