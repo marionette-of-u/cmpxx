@@ -470,7 +470,7 @@ namespace cmpxx{
          *          なる a_0, ..., a_{ k - 1 }
          * */
         inline taylor_expanded_result taylor_expansion(const polynomial &p) const{
-            std::size_t n = coefficient::lower_bound_pow2_coefficient(deg(), p.deg());
+            std::size_t n = order::lower_bound_pow2_coefficient(deg(), p.deg());
             return taylor_expansion_impl(p, n);
         }
 

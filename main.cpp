@@ -164,6 +164,18 @@ namespace test{
             std::cout << std::endl;
         }
 
+        {
+            std::cout << "p-radix taylor expansion\n";
+            poly x, p;
+            p[3](1)[2](-15);
+            x[1]("5/4")[2]("4/3")[3]("3/2")[4]("2/3")[5]("1/4");
+            std::cout << "target p : " << p << "\n" << "target x : " << x << "\n";
+            auto t_result = x.taylor_expansion(p);
+            for(auto &a_i : t_result){
+                std::cout << a_i.first << " : " << a_i.second << "\n";
+            }
+        }
+
         std::cout << std::endl;
     }
 
