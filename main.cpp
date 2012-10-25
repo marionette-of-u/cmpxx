@@ -110,14 +110,26 @@ namespace test{
         std::cout << "-------- integral domain test 1.\n";
 
         typedef cmpxx::polynomial<cmpxx::integer, cmpxx::rational, true> poly;
+
+        {
+            poly a, b, c;
+            a[12]("11/13")[10]("9/11")[8]("7/9")[6]("5/7")[4]("3/5")[2]("1/3")[0]("-1");
+            c = b = a;
+            b.differentiating(1);
+            c.differentiating(10);
+            std::cout << "differentiating.\n";
+            std::cout << "a : " << a << "\n";
+            std::cout << "b : " << b << "\n";
+            std::cout << "c : " << c << "\n";
+            std::cout << std::endl;
+        }
+        
         {
             poly p, q;
-
             // p = 444x^333 + 222x^111
             p[111](222)[333](444);
             // q = 101x^999 + 888x^777 + 666x^555
             q[555](666)[777](888)[999](101);
-
             std::cout << "div.\n";
             std::cout << "lhs : " << q.get_str() << "\n";
             std::cout << "rhs : " << p.get_str() << "\n";

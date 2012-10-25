@@ -475,6 +475,24 @@ namespace cmpxx{
         }
 
         /*
+         * n 階微分
+         * */
+        void differentiating(std::size_t n){
+            for(std::size_t i = 0; i < n; ++i){
+                {
+                    typename ordered_container::const_iterator iter = container.begin();
+                    if(iter->first == 0){
+                        container.erase(iter);
+                    }
+                }
+                for(auto iter = container.begin(), end = container.end(); iter != end; ++iter){
+                    iter->second *= iter->first;
+                    const_cast<order&>(iter->first) -= 1;
+                }
+            }
+        }
+
+        /*
          * 最高次数
          * */
         inline const order &deg() const{

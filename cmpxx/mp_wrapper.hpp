@@ -116,6 +116,12 @@ namespace cmpxx{
                 }                                                            \
                 inline mp_wrapper &op(mp_wrapper &&other){                   \
                     get_raw_value().op(other.get_raw_value());               \
+                    return *this;                                            \
+                }                                                            \
+                template<class T>                                            \
+                inline mp_wrapper &op(const mp_wrapper<T> &other){           \
+                    get_raw_value().op(other.get_raw_value());               \
+                    return *this;                                            \
                 }                                                            \
                 template<class T>                                            \
                 inline mp_wrapper &op(const expr_wrapper<T> &wrapped_expr){  \
