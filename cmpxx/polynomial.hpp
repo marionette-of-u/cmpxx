@@ -479,6 +479,7 @@ namespace cmpxx{
          * */
         void differentiating(std::size_t n){
             for(std::size_t i = 0; i < n; ++i){
+                if(container.empty()){ break; }
                 {
                     typename ordered_container::const_iterator iter = container.begin();
                     if(iter->first == 0){
