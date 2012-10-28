@@ -124,7 +124,7 @@ namespace cmpxx{
             }
         };
 
-        using taylor_expanded_result = std::map<order, polynomial>;
+        using taylor_expansion_result = std::map<order, polynomial>;
 
     public:
         inline polynomial() : container(){}
@@ -469,7 +469,7 @@ namespace cmpxx{
          * return : this = Σ_{ 0 <= i < k } a_i * p^i (0 <= i < k, deg a_i < m, deg a < k * m, k = 2^n, n > 0)
          *          なる a_0, ..., a_{ k - 1 }
          * */
-        inline taylor_expanded_result taylor_expansion(const polynomial &p) const{
+        inline taylor_expansion_result taylor_expansion(const polynomial &p) const{
             std::size_t n = order::lower_bound_pow2_coefficient(deg(), p.deg());
             return taylor_expansion_impl(p, n);
         }
@@ -583,18 +583,20 @@ namespace cmpxx{
         }
 
     private:
-        taylor_expanded_result taylor_expansion_impl(const polynomial &p, std::size_t n) const{
-            taylor_expanded_result result;
+        taylor_expansion_result taylor_expansion_impl(const polynomial &p, std::size_t n) const{
+            taylor_expansion_result result;
             if(n == 0){
                 if(!container.empty()){ result.insert(std::make_pair(0, *this)); }
                 return result;
             }
             --n;
-            polynomial pt = aux::iterate_square_pow2(p, n);
             polynomial q, r;
-            q = div<true>(r, *this, pt);
             {
-                taylor_expanded_result result_q = q.taylor_expansion_impl(p, n);
+                polynomial pt = aux::iterate_square_pow2(p, n);
+                q = div<true>(r, *this, pt);
+            }
+            {
+                taylor_expansion_result result_q = q.taylor_expansion_impl(p, n);
                 order p2 = 1;
                 p2 << n;
                 for(auto &a_i : result_q){
@@ -602,7 +604,7 @@ namespace cmpxx{
                 }
             }
             {
-                taylor_expanded_result result_r = r.taylor_expansion_impl(p, n);
+                taylor_expansion_result result_r = r.taylor_expansion_impl(p, n);
                 for(auto &a_i : result_r){
                     result.insert(std::make_pair(std::move(const_cast<order&>(a_i.first)), std::move(const_cast<polynomial&>(a_i.second))));
                 }
